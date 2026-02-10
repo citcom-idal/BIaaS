@@ -1,5 +1,4 @@
 import abc
-import os
 import re
 
 from google import genai
@@ -11,11 +10,7 @@ from google.genai.types import (
 )
 from groq import Groq
 
-EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
-GOOGLE_LLM_MODEL = "gemini-1.5-flash-latest"
-LLAMA3_70B_MODEL_NAME_GROQ = "llama3-70b-8192"
-GROQ_API_KEY = os.getenv("API_KEY_GROQ", None)
-API_KEY_GEMINI = os.getenv("API_KEY_GEMINI", None)
+from biaas.config import settings
 
 
 class LLMModel(abc.ABC):
@@ -26,12 +21,12 @@ class LLMModel(abc.ABC):
 
 class GroqLLMModel(LLMModel):
     def __init__(self):
-        self.client = Groq(api_key=GROQ_API_KEY)
+        self.client = Groq(api_key=settings.GROQ_API_KEY)
 
     def get_response(self, prompt: str, json_output: bool = False) -> str:
         chat_completion = self.client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model=LLAMA3_70B_MODEL_NAME_GROQ,
+            model=settings.LLAMA3_70B_MODEL_NAME_GROQ,
             temperature=0.1 if json_output else 0.4,
             max_tokens=2048 if json_output else 450,
             response_format={"type": "json_object"} if json_output else None,
@@ -54,7 +49,7 @@ class GroqLLMModel(LLMModel):
 
 class GeminiLLMModel(LLMModel):
     def __init__(self):
-        self.client = genai.Client(api_key=API_KEY_GEMINI)
+        self.client = genai.Client(api_key=settings.API_KEY_GEMINI)
         self.safety_settings = [
             SafetySetting(
                 category=HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -90,7 +85,7 @@ class GeminiLLMModel(LLMModel):
             )
 
         response = self.client.models.generate_content(
-            model=GOOGLE_LLM_MODEL,
+            model=settings.GOOGLE_LLM_MODEL,
             contents=prompt,
             config=config,
         )
