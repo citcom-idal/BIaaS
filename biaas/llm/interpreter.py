@@ -6,6 +6,7 @@ from biaas.llm.visualizer import make_llm_call
 
 
 def generate_insights(
+    llm_provider: str,
     query: str,
     viz_configs_generated: list[dict[str, Any]],
     df_sample: pd.DataFrame,
@@ -26,5 +27,5 @@ Contexto:
 - Visualizaciones Generadas: {viz_summary}
 Tarea: Redacta un resumen breve (1-2 párrafos, máx 120 palabras) con los insights más relevantes. Céntrate en responder la consulta. No inventes información.
 Genera el resumen:"""
-    raw_content = make_llm_call(prompt, is_json_output=False)
+    raw_content = make_llm_call(llm_provider, prompt, is_json_output=False)
     return raw_content if not raw_content.startswith("Error") else "No se generaron insights."

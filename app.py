@@ -41,6 +41,11 @@ def get_faiss_index_instance() -> FAISSIndex:
     return instance
 
 
+@st.cache_data
+def get_current_llm_provider() -> str:
+    return st.session_state.get("current_llm_provider", "gemini")
+
+
 def run_visualization_pipeline(
     user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
 ) -> None:
@@ -48,7 +53,9 @@ def run_visualization_pipeline(
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
-        viz_configs_suggested = plan_visualizations(df_sample_viz, user_query, analysis)
+        viz_configs_suggested = plan_visualizations(
+            get_current_llm_provider(), df_sample_viz, user_query, analysis
+        )
         if viz_configs_suggested:
             with st.expander("JSON Sugerencias Visualización", expanded=False):
                 st.json(viz_configs_suggested)
@@ -72,7 +79,12 @@ def run_visualization_pipeline(
         st.subheader("💡 Insights del Analista Virtual")
         df_sample_ins = df.head(5) if len(df) > 5 else df.copy()
         insights_text = generate_insights(
-            user_query, analysis, valid_viz_configs_generated, df_sample_ins, dataset_title
+            get_current_llm_provider(),
+            user_query,
+            analysis,
+            valid_viz_configs_generated,
+            df_sample_ins,
+            dataset_title,
         )
         st.markdown(insights_text)
 
@@ -172,6 +184,7 @@ def display_initial_view(faiss_index: FAISSIndex, sentence_model: SentenceTransf
                         if result[
                             "similarity"
                         ] > api_agent.SIMILARITY_THRESHOLD and validate_dataset_relevance(
+                            get_current_llm_provider(),
                             user_query_input,
                             result["metadata"]["title"],
                             result["metadata"]["description"],

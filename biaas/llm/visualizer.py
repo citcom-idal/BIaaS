@@ -5,70 +5,11 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from biaas.llm.models import (
-    get_gemini_model,
-    get_gemini_response,
-    get_groq_client,
-    get_groq_response,
-)
-
-groq_client = get_groq_client()
-gemini_client = get_gemini_model()
-
-
-def make_llm_call(prompt_text: str, is_json_output: bool = False) -> str | Any:
-    active_llm = st.session_state.get("current_llm_provider", "gemini")
-    if active_llm == "gemini":
-        if not gemini_client:
-            return "Error: Modelo Gemini no configurado."
-
-        try:
-            response = get_gemini_response(gemini_client, prompt_text, json_output=is_json_output)
-
-            if not response.candidates:
-                return f"Error Gemini: No candidates. Feedback: {response.prompt_feedback}"
-
-            content = response.candidates[0].content
-
-            if not content or not content.parts:
-                return (
-                    f"Error Gemini: Respuesta sin contenido. Feedback: {response.prompt_feedback}"
-                )
-
-            content_parts_text = "".join(p.text for p in content.parts if p.text).strip()
-
-            final_text = (
-                response.text if response.text and response.text.strip() else content_parts_text
-            )
-
-            if not final_text:
-                return "Error Gemini: Respuesta vacía."
-
-            return final_text
-        except Exception as e:
-            return f"Error Gemini: {e}"
-
-    elif active_llm == "llama3":
-        if not groq_client:
-            return "Error: Cliente Groq para Llama3 no configurado."
-
-        try:
-            response_content = get_groq_response(
-                groq_client, prompt_text, json_output=is_json_output
-            )
-            if is_json_output and response_content.startswith("```json"):
-                match = re.search(r"```json\s*([\s\S]*?)\s*```", response_content, re.IGNORECASE)
-                if match:
-                    response_content = match.group(1).strip()
-            return response_content
-        except Exception as e:
-            return f"Error Llama3 (Groq): {e}"
-    else:
-        return f"Error: Proveedor de LLM '{active_llm}' no reconocido."
+from biaas.utils import make_llm_call
 
 
 def plan_visualizations(
-    df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
+    llm_provider: str, df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
 ) -> list[dict[str, Any]]:
     try:
         df_head_str = df_sample.head(3).to_markdown(index=False)
@@ -104,7 +45,7 @@ Instrucciones:
     - "plotly_params": (Opcional, Dict) Parámetros para Plotly Express.
 Genera el JSON:"""
 
-    raw_content = make_llm_call(prompt, is_json_output=True)
+    raw_content = make_llm_call(llm_provider, prompt, is_json_output=True)
     if raw_content.startswith("Error"):
         st.error(f"Planner Error: {raw_content}")
         return []
