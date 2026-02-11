@@ -24,7 +24,12 @@ class APIQueryAgent:
         self.faiss_index = faiss_index
 
     def get_embedding(self, text: str) -> np.ndarray:
-        return self.model.encode(text, normalize_embeddings=True).numpy()
+        embedding = self.model.encode(text, normalize_embeddings=True)
+
+        if embedding.ndim == 1:
+            embedding = embedding.reshape(1, -1)
+
+        return embedding.astype(np.float32)
 
     def search_dataset(self, query: str, top_k: int = 3) -> list[dict[str, Any]] | None:
         if not self.faiss_index.is_ready():
