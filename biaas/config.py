@@ -1,5 +1,8 @@
+import enum
 from pathlib import Path
+from typing import Self
 
+from pydantic import Field, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -14,6 +17,17 @@ CATALOG_LIST_URL = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"
 EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
 
 
+class LLMProvider(enum.Enum):
+    GEMINI = "gemini"
+    GROQ = "groq"
+
+
+LLM_DEFAULT_MODEL_MAP = {
+    LLMProvider.GEMINI: "gemini-1.5-flash-latest",
+    LLMProvider.GROQ: "llama3-70b-8192",
+}
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -22,11 +36,31 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    GROQ_API_KEY: str | None = None
-    GEMINI_MODEL: str = "gemini-1.5-flash-latest"
+    LLM_PROVIDER: LLMProvider = Field(default=LLMProvider.GEMINI)
+    LLM_MODEL: str | None = None
 
-    API_KEY_GEMINI: str | None = None
-    GROQ_MODEL: str = "llama3-70b-8192"
+    LLM_PROVIDER_API_KEY: str | None = None
+
+    @computed_field
+    @property
+    def resolved_llm_model(self) -> str:
+        if self.LLM_MODEL:
+            return self.LLM_MODEL
+
+        try:
+            return LLM_DEFAULT_MODEL_MAP[self.LLM_PROVIDER]
+        except KeyError:
+            raise ValueError(f"Unsupported LLM provider: {self.LLM_PROVIDER}")
+
+    @model_validator(mode="after")
+    def _validate_provider(self) -> Self:
+        if self.LLM_PROVIDER == LLMProvider.GROQ and not self.LLM_PROVIDER_API_KEY:
+            raise ValueError("GROQ_API_KEY must be set when LLM_PROVIDER is 'groq'")
+
+        if self.LLM_PROVIDER == LLMProvider.GEMINI and not self.LLM_PROVIDER_API_KEY:
+            raise ValueError("GEMINI_API_KEY must be set when LLM_PROVIDER is 'gemini'")
+
+        return self
 
 
 settings = Settings()

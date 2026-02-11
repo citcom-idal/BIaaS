@@ -21,12 +21,12 @@ class LLMModel(abc.ABC):
 
 class GroqLLMModel(LLMModel):
     def __init__(self):
-        self.client = Groq(api_key=settings.GROQ_API_KEY)
+        self.client = Groq(api_key=settings.LLM_PROVIDER_API_KEY)
 
     def get_response(self, prompt: str, json_output: bool = False) -> str:
         chat_completion = self.client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model=settings.GROQ_MODEL,
+            model=settings.resolved_llm_model,
             temperature=0.1 if json_output else 0.4,
             max_tokens=2048 if json_output else 450,
             response_format={"type": "json_object"} if json_output else None,
@@ -49,7 +49,7 @@ class GroqLLMModel(LLMModel):
 
 class GeminiLLMModel(LLMModel):
     def __init__(self):
-        self.client = genai.Client(api_key=settings.API_KEY_GEMINI)
+        self.client = genai.Client(api_key=settings.LLM_PROVIDER_API_KEY)
         self.safety_settings = [
             SafetySetting(
                 category=HarmCategory.HARM_CATEGORY_HARASSMENT,
@@ -85,7 +85,7 @@ class GeminiLLMModel(LLMModel):
             )
 
         response = self.client.models.generate_content(
-            model=settings.GEMINI_MODEL,
+            model=settings.resolved_llm_model,
             contents=prompt,
             config=config,
         )
