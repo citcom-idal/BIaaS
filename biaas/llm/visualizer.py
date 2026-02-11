@@ -46,9 +46,11 @@ Instrucciones:
 Genera el JSON:"""
 
     raw_content = make_llm_call(prompt, is_json_output=True)
+
     if raw_content.startswith("Error"):
         st.error(f"Planner Error: {raw_content}")
         return []
+
     try:
         match_block = re.search(r"```json\s*([\s\S]*?)\s*```", raw_content, re.IGNORECASE)
         cleaned_json = match_block.group(1).strip() if match_block else raw_content.strip()
