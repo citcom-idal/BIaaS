@@ -1,9 +1,9 @@
+import io
 import logging
 from typing import Any
 
 import pandas as pd
 import streamlit as st
-from scipy import io
 
 from biaas.utils import sanitize_filename
 
