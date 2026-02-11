@@ -1,5 +1,4 @@
 import abc
-import json
 import logging
 import re
 
@@ -129,12 +128,7 @@ class OllamaLLMModel(LLMModel):
         except Exception:
             return ""
 
-        logging.info(f"OllamaLLMModel - Respuesta recibida: {response}")
-
         content = response.message.content
-
-        if json_output:
-            content = json.loads(content)
 
         if not content:
             return "Error Ollama: Respuesta vacía."
