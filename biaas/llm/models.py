@@ -26,7 +26,7 @@ class GroqLLMModel(LLMModel):
     def get_response(self, prompt: str, json_output: bool = False) -> str:
         chat_completion = self.client.chat.completions.create(
             messages=[{"role": "user", "content": prompt}],
-            model=settings.LLAMA3_70B_MODEL_NAME_GROQ,
+            model=settings.GROQ_MODEL,
             temperature=0.1 if json_output else 0.4,
             max_tokens=2048 if json_output else 450,
             response_format={"type": "json_object"} if json_output else None,
@@ -85,7 +85,7 @@ class GeminiLLMModel(LLMModel):
             )
 
         response = self.client.models.generate_content(
-            model=settings.GOOGLE_LLM_MODEL,
+            model=settings.GEMINI_MODEL,
             contents=prompt,
             config=config,
         )

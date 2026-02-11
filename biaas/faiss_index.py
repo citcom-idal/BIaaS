@@ -10,8 +10,7 @@ import streamlit as st
 from bs4 import BeautifulSoup
 
 from app import get_sentence_transformer_model
-from biaas.config import CATALOG_LIST_URL, INDEX_FILE, METADATA_FILE
-from biaas.llm.models import EMBEDDING_MODEL
+from biaas.config import CATALOG_LIST_URL, EMBEDDING_MODEL, INDEX_FILE, METADATA_FILE
 
 
 class FAISSIndex:

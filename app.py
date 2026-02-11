@@ -7,14 +7,12 @@ from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from biaas.api_query_agent import APIQueryAgent
+from biaas.config import EMBEDDING_MODEL
 from biaas.dataset import analyze_dataset, load_dataset_from_bytes
 from biaas.dataset.validator import validate_dataset_relevance
 from biaas.dataset.visualizer import plot
 from biaas.faiss_index import FAISSIndex, build_and_save_index
 from biaas.llm.interpreter import generate_insights
-from biaas.llm.models import (
-    EMBEDDING_MODEL,
-)
 from biaas.llm.visualizer import (
     gemini_client,
     groq_client,

@@ -5,11 +5,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-INDEX_FILE: str = BASE_DIR / "faiss_opendata_valencia.idx"
-METADATA_FILE: str = BASE_DIR / "faiss_metadata.json"
+INDEX_FILE = BASE_DIR / "faiss_opendata_valencia.idx"
+METADATA_FILE = BASE_DIR / "faiss_metadata.json"
 
-BASE_URL: str = "https://valencia.opendatasoft.com/api/explore/v2.1/"
-CATALOG_LIST_URL: str = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"
+BASE_URL = "https://valencia.opendatasoft.com/api/explore/v2.1/"
+CATALOG_LIST_URL = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"
+
+EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
 
 
 class Settings(BaseSettings):
@@ -20,11 +22,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    EMBEDDING_MODEL: str = "paraphrase-MiniLM-L6-v2"
-    GOOGLE_LLM_MODEL: str = "gemini-1.5-flash-latest"
-    LLAMA3_70B_MODEL_NAME_GROQ: str = "llama3-70b-8192"
     GROQ_API_KEY: str | None = None
+    GEMINI_MODEL: str = "gemini-1.5-flash-latest"
+
     API_KEY_GEMINI: str | None = None
+    GROQ_MODEL: str = "llama3-70b-8192"
 
 
 settings = Settings()
