@@ -10,7 +10,7 @@ from google.genai.types import (
 )
 from groq import Groq
 
-from biaas.config import settings
+from biaas.config import LLMProvider, settings
 
 
 class LLMModel(abc.ABC):
@@ -110,11 +110,13 @@ class GeminiLLMModel(LLMModel):
         return final_text
 
 
-def get_llm_provider(llm_provider: str) -> LLMModel:
-    if llm_provider == "gemini":
+def get_llm_provider() -> LLMModel:
+    llm_provider = settings.LLM_PROVIDER
+
+    if llm_provider == LLMProvider.GEMINI:
         return GeminiLLMModel()
 
-    if llm_provider == "llama3":
+    if llm_provider == LLMProvider.GROQ:
         return GroqLLMModel()
 
     raise ValueError(f"Error: Proveedor de LLM '{llm_provider}' no reconocido.")

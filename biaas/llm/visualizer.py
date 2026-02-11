@@ -9,7 +9,7 @@ from biaas.utils import make_llm_call
 
 
 def plan_visualizations(
-    llm_provider: str, df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
+    df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
 ) -> list[dict[str, Any]]:
     try:
         df_head_str = df_sample.head(3).to_markdown(index=False)
@@ -45,7 +45,7 @@ Instrucciones:
     - "plotly_params": (Opcional, Dict) Parámetros para Plotly Express.
 Genera el JSON:"""
 
-    raw_content = make_llm_call(llm_provider, prompt, is_json_output=True)
+    raw_content = make_llm_call(prompt, is_json_output=True)
     if raw_content.startswith("Error"):
         st.error(f"Planner Error: {raw_content}")
         return []

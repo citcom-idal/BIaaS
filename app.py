@@ -7,17 +7,13 @@ from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from biaas.api_query_agent import APIQueryAgent
-from biaas.config import EMBEDDING_MODEL
-from biaas.dataset import analyze_dataset, load_dataset_from_bytes
+from biaas.config import EMBEDDING_MODEL, LLMProvider, settings
+from biaas.dataset.analysis import analyze_dataset, load_dataset_from_bytes
 from biaas.dataset.validator import validate_dataset_relevance
 from biaas.dataset.visualizer import plot
 from biaas.faiss_index import FAISSIndex, build_and_save_index
 from biaas.llm.interpreter import generate_insights
-from biaas.llm.visualizer import (
-    gemini_client,
-    groq_client,
-    plan_visualizations,
-)
+from biaas.llm.visualizer import plan_visualizations
 from biaas.utils import sanitize_filename
 
 # --- Configuración del Logging ---
@@ -39,21 +35,14 @@ def get_faiss_index_instance() -> FAISSIndex:
     return instance
 
 
-@st.cache_data
-def get_current_llm_provider() -> str:
-    return st.session_state.get("current_llm_provider", "gemini")
-
-
 def run_visualization_pipeline(
     user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
 ) -> None:
-    active_llm_provider = st.session_state.get("current_llm_provider", "gemini")
+    active_llm_provider = st.session_state.get("current_llm_provider")
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
-        viz_configs_suggested = plan_visualizations(
-            get_current_llm_provider(), df_sample_viz, user_query, analysis
-        )
+        viz_configs_suggested = plan_visualizations(df_sample_viz, user_query, analysis)
         if viz_configs_suggested:
             with st.expander("JSON Sugerencias Visualización", expanded=False):
                 st.json(viz_configs_suggested)
@@ -77,7 +66,6 @@ def run_visualization_pipeline(
         st.subheader("💡 Insights del Analista Virtual")
         df_sample_ins = df.head(5) if len(df) > 5 else df.copy()
         insights_text = generate_insights(
-            get_current_llm_provider(),
             user_query,
             analysis,
             valid_viz_configs_generated,
@@ -94,7 +82,7 @@ def main() -> None:
     st.set_page_config(layout="wide", page_title="Analista Datos Valencia")
 
     if "current_llm_provider" not in st.session_state:
-        st.session_state.current_llm_provider = "gemini"
+        st.session_state.current_llm_provider = settings.LLM_PROVIDER
     if "active_df" not in st.session_state:
         st.session_state.active_df = None
     if "active_analysis" not in st.session_state:
@@ -113,7 +101,7 @@ def main() -> None:
     col1.title("Data València Agent")
     with col2:
         available_llms = [
-            llm for llm, client in [("gemini", gemini_client), ("llama3", groq_client)] if client
+            provider.value for provider in LLMProvider if provider.value in settings.LLM_PROVIDER
         ]
         if available_llms:
             st.session_state.current_llm_provider = st.radio(
@@ -182,7 +170,6 @@ def display_initial_view(faiss_index: FAISSIndex, sentence_model: SentenceTransf
                         if result[
                             "similarity"
                         ] > api_agent.SIMILARITY_THRESHOLD and validate_dataset_relevance(
-                            get_current_llm_provider(),
                             user_query_input,
                             result["metadata"]["title"],
                             result["metadata"]["description"],
