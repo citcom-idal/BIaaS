@@ -1,17 +1,29 @@
+import json
 import logging
 from typing import Any
 
+import faiss
+import numpy as np
 import pandas as pd
+import requests
 import streamlit as st
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from biaas.api_query_agent import APIQueryAgent
-from biaas.config import EMBEDDING_MODEL, LLMProvider, settings
+from biaas.config import (
+    CATALOG_LIST_URL,
+    EMBEDDING_MODEL,
+    INDEX_FILE,
+    METADATA_FILE,
+    LLMProvider,
+    settings,
+)
 from biaas.dataset.analysis import analyze_dataset, load_dataset_from_bytes
 from biaas.dataset.validator import validate_dataset_relevance
 from biaas.dataset.visualizer import plot
-from biaas.faiss_index import FAISSIndex, build_and_save_index
+from biaas.faiss_index import FAISSIndex
 from biaas.llm.interpreter import generate_insights
 from biaas.llm.visualizer import plan_visualizations
 from biaas.utils import sanitize_filename
@@ -35,10 +47,140 @@ def get_faiss_index_instance() -> FAISSIndex:
     return instance
 
 
+def build_and_save_index(
+    target_model_name: str = EMBEDDING_MODEL,
+    index_path_to_save: str = INDEX_FILE,
+    metadata_path_to_save: str = METADATA_FILE,
+) -> None:
+    st.header(f"Construyendo Índice FAISS para: {target_model_name}")
+
+    try:
+        sentence_model_instance = get_sentence_transformer_model(target_model_name)
+    except Exception as e:
+        st.error(f"Error al cargar el modelo de embeddings: {e}")
+        return
+
+    all_metadata: list[Any] = []
+    all_embeddings_list: list[Any] = []
+
+    limit = 100
+    start = 0
+    total_datasets = None
+
+    with st.spinner("Obteniendo catálogo de datasets de OpenData Valencia..."):
+        try:
+            initial_response = requests.get(
+                CATALOG_LIST_URL, params={"limit": 1, "offset": 0}, timeout=20
+            )
+            initial_response.raise_for_status()
+            total_datasets = initial_response.json().get("total_count", 0)
+            if total_datasets == 0:
+                st.warning("No se encontraron datasets en el catálogo.")
+                return
+            st.info(
+                f"Se encontraron {total_datasets} datasets. Procediendo a generar embeddings..."
+            )
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error crítico al conectar con la API de OpenData Valencia: {e}")
+            return
+
+    progress_bar = st.progress(0.0, "Iniciando proceso...")
+    status_area = st.empty()
+
+    while start < total_datasets:
+        try:
+            status_area.write(f"Obteniendo página de datasets... offset={start}, limit={limit}")
+            params = {"limit": limit, "offset": start}
+            response = requests.get(CATALOG_LIST_URL, params=params, timeout=30)
+
+            if response.status_code != 200:
+                status_area.warning(
+                    f"Respuesta de la API para offset={start}: Código de estado {response.status_code}. Saltando página."
+                )
+                start += limit
+                continue
+
+            data = response.json()
+            datasets_page = data.get("datasets", [])
+
+            if not datasets_page:
+                status_area.warning(
+                    f"La página con offset={start} no devolvió datasets. Finalizando bucle."
+                )
+                break
+
+            texts_for_page = []
+            metadata_for_page = []
+
+            for dataset_info in datasets_page:
+                dataset = dataset_info.get("dataset", {})
+                dataset_id = dataset.get("dataset_id", "")
+                meta = dataset.get("metas", {}).get("default", {})
+                title = meta.get("title", "Sin título")
+                description_html = meta.get("description", "")
+                description = (
+                    BeautifulSoup(description_html, "html.parser").get_text().strip()
+                    if description_html
+                    else ""
+                )
+
+                texts_for_page.append(f"título: {title}; descripción: {description}")
+                metadata_for_page.append(
+                    {"id": dataset_id, "title": title, "description": description}
+                )
+
+            if texts_for_page:
+                page_embeddings = sentence_model_instance.encode(
+                    texts_for_page, normalize_embeddings=True, show_progress_bar=False
+                )
+                all_embeddings_list.extend(page_embeddings)
+                all_metadata.extend(metadata_for_page)
+
+            start += len(datasets_page)
+            progress_bar.progress(
+                min(start / total_datasets, 1.0),
+                text=f"Procesados {start}/{total_datasets} datasets",
+            )
+
+        except requests.exceptions.RequestException as e:
+            st.error(f"Error de red en offset {start}. Deteniendo... Error: {e}")
+            break
+        except Exception as e:
+            st.error(f"Ocurrió un error inesperado en offset {start}: {e}")
+            break
+
+    if not all_embeddings_list:
+        st.error(
+            "No se pudieron generar embeddings. El proceso ha fallado. Revisa los mensajes de estado de la API."
+        )
+        return
+
+    progress_bar.empty()
+    status_area.empty()
+
+    st.info(f"Construyendo y guardando el índice FAISS en {index_path_to_save}...")
+
+    with st.spinner(f"Construyendo y guardando el índice FAISS en {index_path_to_save}..."):
+        embeddings_np = np.array(all_embeddings_list).astype("float32")
+        d = embeddings_np.shape[1]
+        index = faiss.IndexFlatL2(d)
+        index.add(embeddings_np)
+
+        faiss.write_index(index, index_path_to_save)
+
+        with open(metadata_path_to_save, "w", encoding="utf-8") as f:
+            json.dump(all_metadata, f, ensure_ascii=False, indent=2)
+
+    st.success(f"¡Índice FAISS con {index.ntotal} vectores construido y guardado con éxito!")
+    st.balloons()
+    st.info("La página se recargará para usar el nuevo índice.")
+    st.rerun()
+
+
 def run_visualization_pipeline(
     user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
 ) -> None:
-    active_llm_provider = st.session_state.get("current_llm_provider")
+    active_llm_provider = st.session_state.get("current_llm_provider").value
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
@@ -100,16 +242,15 @@ def main() -> None:
     col1, col2 = st.columns([3, 1])
     col1.title("Data València Agent")
     with col2:
-        available_llms = [
-            provider.value for provider in LLMProvider if provider.value in settings.LLM_PROVIDER
-        ]
-        if available_llms:
-            st.session_state.current_llm_provider = st.radio(
-                "Selecciona LLM:", options=available_llms, horizontal=True, key="llm_selector"
-            )
-        else:
-            st.error("Ningún LLM configurado. Verifica API Keys.")
-            st.stop()
+        available_llm_providers = list(LLMProvider)
+        st.session_state.current_llm_provider = st.radio(
+            "Selecciona LLM:",
+            options=available_llm_providers,
+            index=available_llm_providers.index(st.session_state.current_llm_provider),
+            format_func=lambda x: x.value,
+            horizontal=True,
+            key="llm_selector",
+        )
 
     st.sidebar.header("Acciones del Índice")
     if faiss_index_global.is_ready():
@@ -125,7 +266,7 @@ def main() -> None:
 
     st.markdown("---")
     st.caption(
-        f"Desarrollado con {EMBEDDING_MODEL} y {st.session_state.get('current_llm_provider','N/A').upper()}."
+        f"Desarrollado con {EMBEDDING_MODEL} y {st.session_state.get('current_llm_provider','N/A').value.upper()}."
     )
 
 

@@ -8,8 +8,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 
-INDEX_FILE = BASE_DIR / "faiss_opendata_valencia.idx"
-METADATA_FILE = BASE_DIR / "faiss_metadata.json"
+INDEX_FILE = str(BASE_DIR / "faiss_opendata_valencia.idx")
+METADATA_FILE = str(BASE_DIR / "faiss_metadata.json")
 
 BASE_URL = "https://valencia.opendatasoft.com/api/explore/v2.1/"
 CATALOG_LIST_URL = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"
@@ -20,11 +20,13 @@ EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
 class LLMProvider(enum.Enum):
     GEMINI = "gemini"
     GROQ = "groq"
+    OLLAMA = "ollama"
 
 
 LLM_DEFAULT_MODEL_MAP = {
     LLMProvider.GEMINI: "gemini-1.5-flash-latest",
     LLMProvider.GROQ: "llama3-70b-8192",
+    LLMProvider.OLLAMA: "llama3:70b",
 }
 
 
@@ -36,7 +38,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    LLM_PROVIDER: LLMProvider = Field(default=LLMProvider.GEMINI)
+    LLM_PROVIDER: LLMProvider = Field(default=LLMProvider.OLLAMA)
     LLM_MODEL: str | None = None
 
     LLM_PROVIDER_API_KEY: str | None = None

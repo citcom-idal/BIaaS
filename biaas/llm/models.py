@@ -1,4 +1,6 @@
 import abc
+import json
+import logging
 import re
 
 from google import genai
@@ -9,6 +11,7 @@ from google.genai.types import (
     SafetySetting,
 )
 from groq import Groq
+from ollama import Client as OllamaClient
 
 from biaas.config import LLMProvider, settings
 
@@ -110,7 +113,36 @@ class GeminiLLMModel(LLMModel):
         return final_text
 
 
-def get_llm_provider() -> LLMModel:
+class OllamaLLMModel(LLMModel):
+    def __init__(self):
+        self.client = OllamaClient()
+
+    def get_response(self, prompt: str, json_output: bool = False) -> str:
+        logging.info(f"OllamaLLMModel - Enviando prompt: {prompt}")
+
+        try:
+            response = self.client.chat(
+                model=settings.resolved_llm_model,
+                messages=[{"role": "user", "content": prompt}],
+                format="json" if json_output else "",
+            )
+        except Exception:
+            return ""
+
+        logging.info(f"OllamaLLMModel - Respuesta recibida: {response}")
+
+        content = response.message.content
+
+        if json_output:
+            content = json.loads(content)
+
+        if not content:
+            return "Error Ollama: Respuesta vacía."
+
+        return content.strip()
+
+
+def get_llm_model() -> LLMModel:
     llm_provider = settings.LLM_PROVIDER
 
     if llm_provider == LLMProvider.GEMINI:
@@ -118,5 +150,8 @@ def get_llm_provider() -> LLMModel:
 
     if llm_provider == LLMProvider.GROQ:
         return GroqLLMModel()
+
+    if llm_provider == LLMProvider.OLLAMA:
+        return OllamaLLMModel()
 
     raise ValueError(f"Error: Proveedor de LLM '{llm_provider}' no reconocido.")
