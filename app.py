@@ -22,7 +22,7 @@ from biaas.config import (
 )
 from biaas.dataset.analysis import analyze_dataset
 from biaas.dataset.validator import validate_dataset_relevance
-from biaas.dataset.visualizer import plot
+from biaas.dataset.visualizer import plot_dataset
 from biaas.exceptions import ExternalAPIError
 from biaas.faiss_index import FAISSIndex
 from biaas.llm.interpreter import generate_insights
@@ -196,7 +196,7 @@ def run_visualization_pipeline(
         for idx, config in enumerate(viz_configs_suggested):
             title_viz = config.get("titulo_de_la_visualizacion", f"Visualización {idx+1}")
             st.markdown(f"**{idx+1}. {title_viz}**")
-            fig = plot(df, config)
+            fig = plot_dataset(df, config)
             if fig:
                 st.plotly_chart(fig, use_container_width=True)
                 valid_viz_configs_generated.append(config)

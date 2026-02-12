@@ -45,7 +45,7 @@ def _normalize_chart_type(chart_type: str) -> str:
     return normalized
 
 
-def plot(df: pd.DataFrame, config: dict[str, Any]) -> go.Figure | None:
+def plot_dataset(df: pd.DataFrame, config: dict[str, Any]) -> go.Figure | None:
     chart_type = _normalize_chart_type(config.get("tipo_de_visualizacion", ""))
     plot_func = PLOT_FUNCTIONS.get(chart_type)
 
