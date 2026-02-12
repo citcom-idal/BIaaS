@@ -27,6 +27,7 @@ from biaas.exceptions import (
     ExternalAPIError,
     PlannerError,
     PlannerJSONError,
+    PlotGenerationError,
 )
 from biaas.faiss_index import FAISSIndex
 from biaas.llm.interpreter import generate_insights
@@ -208,11 +209,16 @@ def run_visualization_pipeline(
         for idx, config in enumerate(viz_configs_suggested):
             title_viz = config.get("titulo_de_la_visualizacion", f"Visualización {idx+1}")
             st.markdown(f"**{idx+1}. {title_viz}**")
-            fig = plot_dataset(df, config)
-            if fig:
+            try:
+                fig = plot_dataset(df, config)
                 st.plotly_chart(fig, use_container_width=True)
                 valid_viz_configs_generated.append(config)
-            else:
+            except PlotGenerationError as e:
+                if e.level == "warning":
+                    st.warning(str(e))
+                else:
+                    st.error(str(e))
+
                 st.warning(f"No se pudo generar: {title_viz}")
     else:
         st.info(f"IA ({active_llm_provider.upper()}) no sugirió visualizaciones.")

@@ -1,3 +1,6 @@
+from typing import Literal
+
+
 class ExternalAPIError(Exception):
     """Exception for handling errors related to external API calls."""
 
@@ -19,3 +22,12 @@ class PlannerJSONError(Exception):
         super().__init__(f"Planner JSON Error: {raw_content}")
 
         self.raw_content = raw_content
+
+
+class PlotGenerationError(Exception):
+    """Exception for handling errors during plot generation."""
+
+    def __init__(self, message: str, level: Literal["warning", "error"]) -> None:
+        super().__init__(message)
+
+        self.level: Literal["warning", "error"] = level

@@ -5,7 +5,8 @@ from typing import Any
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
+
+from biaas.exceptions import PlotGenerationError
 
 PLOT_FUNCTIONS: dict[str, Callable[..., go.Figure]] = {
     "histograma": px.histogram,
@@ -45,22 +46,23 @@ def _normalize_chart_type(chart_type: str) -> str:
     return normalized
 
 
-def plot_dataset(df: pd.DataFrame, config: dict[str, Any]) -> go.Figure | None:
+def plot_dataset(df: pd.DataFrame, config: dict[str, Any]) -> go.Figure:
     chart_type = _normalize_chart_type(config.get("tipo_de_visualizacion", ""))
     plot_func = PLOT_FUNCTIONS.get(chart_type)
 
     if not plot_func:
-        st.warning(f"Tipo visualización no soportado: '{config.get('tipo_de_visualizacion', '')}'")
-        return None
+        raise PlotGenerationError(
+            f"Tipo de visualización no soportado: '{config.get('tipo_de_visualizacion', '')}'.",
+            level="warning",
+        )
 
     campos_orig = config.get("campos_involucrados", [])
     campos = [c for c in campos_orig if c in df.columns]
     if not campos and campos_orig:
-        st.warning(f"Campos no existen ({campos_orig}).")
-        return None
+        raise PlotGenerationError(f"Campos no existen ({campos_orig}).", level="warning")
+
     if not campos:
-        st.warning(f"No hay campos para '{chart_type}'.")
-        return None
+        raise PlotGenerationError(f"No hay campos para '{chart_type}'.", level="warning")
 
     title = config.get("titulo_de_la_visualizacion", chart_type)
 
@@ -101,10 +103,10 @@ def plot_dataset(df: pd.DataFrame, config: dict[str, Any]) -> go.Figure | None:
             df_plot[lon_col] = pd.to_numeric(df_plot[lon_col], errors="coerce")
             df_plot.dropna(subset=[lat_col, lon_col], inplace=True)
             if df_plot.empty:
-                st.warning(
-                    "No hay datos geoespaciales válidos para mostrar después de la limpieza."
+                raise PlotGenerationError(
+                    "No hay datos geoespaciales válidos para mostrar después de la limpieza.",
+                    level="warning",
                 )
-                return None
 
             plot_args.update({"lat": lat_col, "lon": lon_col, "zoom": plot_args.get("zoom", 10)})
 
@@ -122,5 +124,4 @@ def plot_dataset(df: pd.DataFrame, config: dict[str, Any]) -> go.Figure | None:
 
         return plot_func(**plot_args)
     except Exception as e:
-        st.error(f"Error generando el gráfico '{title}': {e}")
-        return None
+        raise PlotGenerationError(f"Error generando el gráfico '{title}': {e}", level="error")
