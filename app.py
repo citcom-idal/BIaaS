@@ -186,7 +186,7 @@ def build_and_save_index(
 def run_visualization_pipeline(
     user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
 ) -> None:
-    active_llm_provider = st.session_state.get("current_llm_provider").value
+    active_llm_provider = st.session_state.get("current_llm_provider", settings.LLM_PROVIDER).value
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
