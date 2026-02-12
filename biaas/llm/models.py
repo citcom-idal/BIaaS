@@ -1,5 +1,4 @@
 import abc
-import logging
 import re
 
 from google import genai
@@ -117,8 +116,6 @@ class OllamaLLMModel(LLMModel):
         self.client = OllamaClient()
 
     def get_response(self, prompt: str, json_output: bool = False) -> str:
-        logging.info(f"OllamaLLMModel - Enviando prompt: {prompt}")
-
         try:
             response = self.client.chat(
                 model=settings.resolved_llm_model,
