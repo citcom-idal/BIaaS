@@ -1,4 +1,4 @@
-from biaas.llm.visualizer import make_llm_call
+from biaas.utils import make_llm_call
 
 
 def validate_dataset_relevance(query: str, dataset_title: str, dataset_description: str) -> bool:

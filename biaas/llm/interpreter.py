@@ -2,7 +2,7 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.llm.visualizer import make_llm_call
+from biaas.utils import make_llm_call
 
 
 def generate_insights(
