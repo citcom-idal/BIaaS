@@ -23,10 +23,14 @@ from biaas.config import (
 from biaas.dataset.analysis import analyze_dataset
 from biaas.dataset.validator import validate_dataset_relevance
 from biaas.dataset.visualizer import plot_dataset
-from biaas.exceptions import ExternalAPIError
+from biaas.exceptions import (
+    ExternalAPIError,
+    PlannerError,
+    PlannerJSONError,
+)
 from biaas.faiss_index import FAISSIndex
 from biaas.llm.interpreter import generate_insights
-from biaas.llm.visualizer import plan_visualizations
+from biaas.llm.visualizer import suggest_visualizations
 from biaas.utils import sanitize_filename
 
 # --- Configuración del Logging ---
@@ -185,7 +189,15 @@ def run_visualization_pipeline(
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
-        viz_configs_suggested = plan_visualizations(df_sample_viz, user_query, analysis)
+        viz_configs_suggested: list[dict[str, Any]] = []
+        try:
+            viz_configs_suggested = suggest_visualizations(df_sample_viz, user_query, analysis)
+        except PlannerError as e:
+            st.error(str(e))
+        except PlannerJSONError as e:
+            st.error(str(e))
+            st.text_area("Respuesta:", e.raw_content, height=150)
+
         if viz_configs_suggested:
             with st.expander("JSON Sugerencias Visualización", expanded=False):
                 st.json(viz_configs_suggested)

@@ -3,12 +3,15 @@ import re
 from typing import Any
 
 import pandas as pd
-import streamlit as st
 
+from biaas.exceptions import (
+    PlannerError,
+    PlannerJSONError,
+)
 from biaas.utils import make_llm_call
 
 
-def plan_visualizations(
+def suggest_visualizations(
     df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
 ) -> list[dict[str, Any]]:
     try:
@@ -48,8 +51,7 @@ Genera el JSON:"""
     raw_content = make_llm_call(prompt, is_json_output=True)
 
     if raw_content.startswith("Error"):
-        st.error(f"Planner Error: {raw_content}")
-        return []
+        raise PlannerError(raw_content)
 
     try:
         match_block = re.search(r"```json\s*([\s\S]*?)\s*```", raw_content, re.IGNORECASE)
@@ -65,7 +67,5 @@ Genera el JSON:"""
                 visualizations = [visualizations]
 
         return visualizations if isinstance(visualizations, list) else []
-    except Exception as e:
-        st.error(f"Planner JSON Error: {e}")
-        st.text_area("Respuesta:", raw_content, height=150)
-        return []
+    except Exception:
+        raise PlannerJSONError(raw_content)
