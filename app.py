@@ -20,9 +20,10 @@ from biaas.config import (
     LLMProvider,
     settings,
 )
-from biaas.dataset.analysis import analyze_dataset, load_dataset_from_bytes
+from biaas.dataset.analysis import analyze_dataset
 from biaas.dataset.validator import validate_dataset_relevance
 from biaas.dataset.visualizer import plot
+from biaas.exceptions import ExternalAPIError
 from biaas.faiss_index import FAISSIndex
 from biaas.llm.interpreter import generate_insights
 from biaas.llm.visualizer import plan_visualizations
@@ -209,7 +210,6 @@ def run_visualization_pipeline(
         df_sample_ins = df.head(5) if len(df) > 5 else df.copy()
         insights_text = generate_insights(
             user_query,
-            analysis,
             valid_viz_configs_generated,
             df_sample_ins,
             dataset_title,
@@ -340,14 +340,12 @@ def display_initial_view(faiss_index: FAISSIndex, sentence_model: SentenceTransf
             dataset_title = selected_dataset_info["metadata"]["title"]
 
             with st.spinner(f"Descargando y analizando '{dataset_title}'..."):
-                dataset_bytes = api_agent.export_dataset(dataset_id)
-                if not dataset_bytes:
-                    st.error(f"Fallo en la descarga del dataset '{dataset_title}'.")
+                try:
+                    df = api_agent.load_dataset(dataset_id)
+                except ExternalAPIError as e:
+                    st.error(str(e))
                     return
-                df = load_dataset_from_bytes(dataset_bytes, dataset_title)
-                if df is None or df.empty:
-                    st.error(f"El dataset '{dataset_title}' está vacío o no se pudo cargar.")
-                    return
+
                 analysis = analyze_dataset(df)
 
             st.session_state.active_df = df

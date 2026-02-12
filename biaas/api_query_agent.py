@@ -1,8 +1,9 @@
-import logging
+import io
 from typing import Any
 
+import httpx
 import numpy as np
-import requests
+import pandas as pd
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 from tenacity import (
@@ -12,7 +13,8 @@ from tenacity import (
     wait_exponential,
 )
 
-from biaas.config import BASE_URL
+from biaas.config import CATALOG_LIST_URL
+from biaas.exceptions import ExternalAPIError
 from biaas.faiss_index import FAISSIndex
 
 
@@ -34,7 +36,9 @@ class APIQueryAgent:
     def search_dataset(self, query: str, top_k: int = 3) -> list[dict[str, Any]] | None:
         if not self.faiss_index.is_ready():
             return None
+
         query_embedding = self.get_embedding(query)
+
         try:
             return self.faiss_index.search(query_embedding, top_k=top_k)
         except Exception as e:
@@ -43,42 +47,31 @@ class APIQueryAgent:
 
     @retry(
         stop=stop_after_attempt(3),
-        wait=wait_exponential(min=1, max=6),
-        retry=retry_if_exception_type(requests.exceptions.RequestException),
-    )
-    def _fetch_api_data(
-        self, endpoint: str, params: dict[str, Any] | None = None
-    ) -> dict[str, Any] | None:
-        try:
-            response = requests.get(endpoint, params=params, timeout=20)
-            response.raise_for_status()
-            return response.json()
-        except requests.exceptions.RequestException as e:
-            logging.error(f"API Fetch Error: {e}")
-            st.error(f"API Error: {e}")
-            raise
-
-    @retry(
-        stop=stop_after_attempt(3),
         wait=wait_exponential(min=2, max=10),
-        retry=retry_if_exception_type(requests.exceptions.RequestException),
+        retry=retry_if_exception_type(
+            [httpx.RequestError, httpx.HTTPStatusError, httpx.TimeoutException, Exception]
+        ),
     )
-    def export_dataset(self, dataset_id: str) -> bytes | None:
-        endpoint = f"{BASE_URL}catalog/datasets/{dataset_id}/exports/csv"
-        params = {"delimiter": ";"}
-        try:
-            response = requests.get(endpoint, params=params, timeout=60)
-            response.raise_for_status()
-            if "text/csv" in response.headers.get("Content-Type", ""):
-                return response.content
-            else:
-                params = {}
-                response = requests.get(endpoint, params=params, timeout=60)
+    def load_dataset(self, dataset_id: str) -> pd.DataFrame:
+        endpoint = f"{CATALOG_LIST_URL}/{dataset_id}/exports/csv"
+
+        with httpx.Client(timeout=60) as client:
+            try:
+                response = client.get(endpoint)
                 response.raise_for_status()
-                if "text/csv" in response.headers.get("Content-Type", ""):
-                    return response.content
-                else:
-                    return None
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error descargando {dataset_id}: {e}")
-            raise
+            except httpx.TimeoutException as e:
+                raise ExternalAPIError(f"Timeout al descargar {dataset_id}: {e}")
+            except httpx.HTTPStatusError as e:
+                raise ExternalAPIError(
+                    f"Error HTTP {e.response.status_code} al descargar {dataset_id}: {e}"
+                )
+            except httpx.RequestError as e:
+                raise ExternalAPIError(f"Error de conexión al descargar {dataset_id}: {e}")
+            except Exception as e:
+                raise ExternalAPIError(f"Error inesperado al descargar {dataset_id}: {e}")
+
+        df = pd.read_csv(io.StringIO(response.text), delimiter=";")
+
+        df.columns = df.columns.str.strip().str.replace(" ", "_").str.lower()
+
+        return df
