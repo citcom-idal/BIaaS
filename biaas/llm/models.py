@@ -113,7 +113,7 @@ class GeminiLLMModel(LLMModel):
 
 class OllamaLLMModel(LLMModel):
     def __init__(self):
-        self.client = OllamaClient()
+        self.client = OllamaClient(host=settings.OLLAMA_HOST.encoded_string())
 
     def get_response(self, prompt: str, json_output: bool = False) -> str:
         try:

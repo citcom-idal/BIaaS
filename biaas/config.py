@@ -2,7 +2,7 @@ import enum
 from pathlib import Path
 from typing import Self
 
-from pydantic import Field, computed_field, model_validator
+from pydantic import Field, HttpUrl, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str | None = None
 
     LLM_PROVIDER_API_KEY: str | None = None
+    OLLAMA_HOST: HttpUrl = "http://localhost:11434"
 
     @computed_field
     @property
