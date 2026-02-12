@@ -5,10 +5,11 @@ from typing import Any
 import pandas as pd
 
 from biaas.exceptions import (
+    LLMModelError,
     PlannerError,
     PlannerJSONError,
 )
-from biaas.utils import make_llm_call
+from biaas.llm.models import get_llm_model
 
 
 def suggest_visualizations(
@@ -48,12 +49,10 @@ Instrucciones:
     - "plotly_params": (Opcional, Dict) Parámetros para Plotly Express.
 Genera el JSON:"""
 
-    raw_content = make_llm_call(prompt, is_json_output=True)
-
-    if raw_content.startswith("Error"):
-        raise PlannerError(raw_content)
-
     try:
+        llm_model = get_llm_model()
+        raw_content = llm_model.get_response(prompt, json_output=True)
+
         match_block = re.search(r"```json\s*([\s\S]*?)\s*```", raw_content, re.IGNORECASE)
         cleaned_json = match_block.group(1).strip() if match_block else raw_content.strip()
         visualizations = json.loads(cleaned_json)
@@ -67,5 +66,7 @@ Genera el JSON:"""
                 visualizations = [visualizations]
 
         return visualizations if isinstance(visualizations, list) else []
+    except LLMModelError as e:
+        raise PlannerError(str(e))
     except Exception:
         raise PlannerJSONError(raw_content)

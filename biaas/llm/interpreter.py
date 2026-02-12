@@ -2,7 +2,8 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.utils import make_llm_call
+from biaas.exceptions import LLMModelError
+from biaas.llm.models import get_llm_model
 
 
 def generate_insights(
@@ -28,6 +29,8 @@ Contexto:
 Tarea: Redacta un resumen breve (1-2 párrafos, máx 120 palabras) con los insights más relevantes. Céntrate en responder la consulta. No inventes información.
 Genera el resumen:"""
 
-    raw_content = make_llm_call(prompt, is_json_output=False)
-
-    return raw_content if not raw_content.startswith("Error") else "No se generaron insights."
+    try:
+        llm_model = get_llm_model()
+        return llm_model.get_response(prompt, json_output=False)
+    except LLMModelError:
+        return "No se generaron insights"

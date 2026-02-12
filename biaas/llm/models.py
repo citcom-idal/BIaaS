@@ -12,6 +12,7 @@ from groq import Groq
 from ollama import Client as OllamaClient
 
 from biaas.config import LLMProvider, settings
+from biaas.exceptions import LLMModelError
 
 
 class LLMModel(abc.ABC):
@@ -25,18 +26,21 @@ class GroqLLMModel(LLMModel):
         self.client = Groq(api_key=settings.LLM_PROVIDER_API_KEY)
 
     def get_response(self, prompt: str, json_output: bool = False) -> str:
-        chat_completion = self.client.chat.completions.create(
-            messages=[{"role": "user", "content": prompt}],
-            model=settings.resolved_llm_model,
-            temperature=0.1 if json_output else 0.4,
-            max_tokens=2048 if json_output else 450,
-            response_format={"type": "json_object"} if json_output else None,
-        )
+        try:
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=settings.resolved_llm_model,
+                temperature=0.1 if json_output else 0.4,
+                max_tokens=2048 if json_output else 450,
+                response_format={"type": "json_object"} if json_output else None,
+            )
+        except Exception as e:
+            raise LLMModelError(f"Error Groq: {e}")
 
         content = chat_completion.choices[0].message.content
 
         if not content:
-            content = ""
+            raise LLMModelError("Error Groq: Respuesta vacía.")
 
         content = content.strip()
 
@@ -50,8 +54,7 @@ class GroqLLMModel(LLMModel):
 
 class GeminiLLMModel(LLMModel):
     def __init__(self):
-        self.client = genai.Client(api_key=settings.LLM_PROVIDER_API_KEY)
-        self.safety_settings = [
+        safety_settings = [
             SafetySetting(
                 category=HarmCategory.HARM_CATEGORY_HARASSMENT,
                 threshold=HarmBlockThreshold.BLOCK_NONE,
@@ -70,34 +73,38 @@ class GeminiLLMModel(LLMModel):
             ),
         ]
 
-    def get_response(self, prompt: str, json_output: bool = False) -> str:
-        if json_output:
-            config = GenerateContentConfig(
-                safety_settings=self.safety_settings,
-                temperature=0.1,
-                max_output_tokens=2048,
-                response_mime_type="application/json",
-            )
-        else:
-            config = GenerateContentConfig(
-                safety_settings=self.safety_settings,
-                temperature=0.4,
-                max_output_tokens=450,
-            )
-
-        response = self.client.models.generate_content(
-            model=settings.resolved_llm_model,
-            contents=prompt,
-            config=config,
+        self.client = genai.Client(api_key=settings.LLM_PROVIDER_API_KEY)
+        self.raw_config = GenerateContentConfig(
+            safety_settings=safety_settings, temperature=0.1, max_output_tokens=2048
+        )
+        self.json_config = GenerateContentConfig(
+            safety_settings=safety_settings,
+            temperature=0.1,
+            max_output_tokens=2048,
+            response_mime_type="application/json",
         )
 
+    def get_response(self, prompt: str, json_output: bool = False) -> str:
+        try:
+            response = self.client.models.generate_content(
+                model=settings.resolved_llm_model,
+                contents=prompt,
+                config=self.json_config if json_output else self.raw_config,
+            )
+        except Exception as e:
+            raise LLMModelError(f"Error Gemini: {e}")
+
         if not response.candidates:
-            return f"Error Gemini: No candidates. Feedback: {response.prompt_feedback}"
+            raise LLMModelError(
+                f"Error Gemini: No candidates. Feedback: {response.prompt_feedback}"
+            )
 
         content = response.candidates[0].content
 
         if not content or not content.parts:
-            return f"Error Gemini: Respuesta sin contenido. Feedback: {response.prompt_feedback}"
+            raise LLMModelError(
+                f"Error Gemini: Respuesta sin contenido. Feedback: {response.prompt_feedback}"
+            )
 
         content_parts_text = "".join(p.text for p in content.parts if p.text).strip()
 
@@ -106,7 +113,7 @@ class GeminiLLMModel(LLMModel):
         )
 
         if not final_text:
-            return "Error Gemini: Respuesta vacía."
+            raise LLMModelError("Error Gemini: Respuesta vacía.")
 
         return final_text
 
@@ -122,13 +129,13 @@ class OllamaLLMModel(LLMModel):
                 messages=[{"role": "user", "content": prompt}],
                 format="json" if json_output else "",
             )
-        except Exception:
-            return ""
+        except Exception as e:
+            raise LLMModelError(f"Error Ollama: {e}")
 
         content = response.message.content
 
         if not content:
-            return "Error Ollama: Respuesta vacía."
+            raise LLMModelError("Error Ollama: Respuesta vacía.")
 
         return content.strip()
 
