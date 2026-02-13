@@ -7,7 +7,7 @@ def validate_dataset_relevance(query: str, dataset_title: str, dataset_descripti
 
     try:
         llm_model = get_llm_model()
-        raw_response = llm_model.get_response(prompt, json_output=False)
+        raw_response = llm_model.get_raw_response(prompt)
     except LLMModelError:
         return False
 

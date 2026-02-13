@@ -31,6 +31,6 @@ Genera el resumen:"""
 
     try:
         llm_model = get_llm_model()
-        return llm_model.get_response(prompt, json_output=False)
+        return llm_model.get_raw_response(prompt)
     except LLMModelError:
         return "No se generaron insights"
