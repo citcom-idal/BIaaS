@@ -2,7 +2,7 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.exceptions import LLMModelError
+from biaas.core.exceptions import LLMModelError
 from biaas.llm import get_llm_model
 
 

@@ -13,8 +13,8 @@ from tenacity import (
     wait_exponential,
 )
 
-from biaas.config import CATALOG_LIST_URL
-from biaas.exceptions import ExternalAPIError
+from biaas.core.config import CATALOG_LIST_URL
+from biaas.core.exceptions import ExternalAPIError
 from biaas.services.faiss_service import FaissService
 
 

@@ -6,8 +6,8 @@ from groq.types.chat.completion_create_params import (
     ResponseFormat as GroqResponseFormat,
 )
 
-from biaas.config import settings
-from biaas.exceptions import LLMModelError
+from biaas.core.config import settings
+from biaas.core.exceptions import LLMModelError
 from biaas.llm.models.base import LLMModel
 
 

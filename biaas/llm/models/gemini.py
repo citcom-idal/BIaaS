@@ -9,8 +9,8 @@ from google.genai.types import (
 )
 from google.genai.types import GenerateContentConfigOrDict as GeminiConfig
 
-from biaas.config import settings
-from biaas.exceptions import LLMModelError
+from biaas.core.config import settings
+from biaas.core.exceptions import LLMModelError
 from biaas.llm.models.base import LLMModel
 
 

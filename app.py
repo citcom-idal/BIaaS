@@ -11,14 +11,14 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
-from biaas.config import (
+from biaas.core.config import (
     CATALOG_LIST_URL,
     EMBEDDING_MODEL,
     INDEX_FILE,
     METADATA_FILE,
     settings,
 )
-from biaas.exceptions import (
+from biaas.core.exceptions import (
     ExternalAPIError,
     PlannerError,
     PlannerJSONError,

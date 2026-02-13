@@ -2,7 +2,7 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.exceptions import (
+from biaas.core.exceptions import (
     LLMModelError,
     PlannerError,
     PlannerJSONError,

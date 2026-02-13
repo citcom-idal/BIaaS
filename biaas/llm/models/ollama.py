@@ -2,8 +2,8 @@ from typing import Any, Literal
 
 from ollama import Client as OllamaClient
 
-from biaas.config import settings
-from biaas.exceptions import LLMModelError
+from biaas.core.config import settings
+from biaas.core.exceptions import LLMModelError
 from biaas.llm.models.base import LLMModel
 
 

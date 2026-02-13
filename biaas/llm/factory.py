@@ -1,4 +1,4 @@
-from biaas.config import LLMProvider, settings
+from biaas.core.config import LLMProvider, settings
 from biaas.llm.models.base import LLMModel
 from biaas.llm.models.gemini import GeminiLLMModel
 from biaas.llm.models.groq import GroqLLMModel

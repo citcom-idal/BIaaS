@@ -3,7 +3,7 @@ import json
 import re
 from typing import Any
 
-from biaas.exceptions import LLMModelError
+from biaas.core.exceptions import LLMModelError
 
 
 class LLMModel(abc.ABC):
