@@ -17,7 +17,6 @@ from biaas.config import (
     EMBEDDING_MODEL,
     INDEX_FILE,
     METADATA_FILE,
-    LLMProvider,
     settings,
 )
 from biaas.dataset.analysis import analyze_dataset
@@ -186,7 +185,7 @@ def build_and_save_index(
 def run_visualization_pipeline(
     user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
 ) -> None:
-    active_llm_provider = st.session_state.get("current_llm_provider", settings.LLM_PROVIDER).value
+    active_llm_provider = settings.LLM_PROVIDER.value
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
@@ -241,8 +240,6 @@ def run_visualization_pipeline(
 def main() -> None:
     st.set_page_config(layout="wide", page_title="Analista Datos Valencia")
 
-    if "current_llm_provider" not in st.session_state:
-        st.session_state.current_llm_provider = settings.LLM_PROVIDER
     if "active_df" not in st.session_state:
         st.session_state.active_df = None
     if "active_analysis" not in st.session_state:
@@ -259,18 +256,7 @@ def main() -> None:
 
     faiss_index_global.load_index()
 
-    col1, col2 = st.columns([3, 1])
-    col1.title("Data València Agent")
-    with col2:
-        available_llm_providers = list(LLMProvider)
-        st.session_state.current_llm_provider = st.radio(
-            "Selecciona LLM:",
-            options=available_llm_providers,
-            index=available_llm_providers.index(st.session_state.current_llm_provider),
-            format_func=lambda x: x.value,
-            horizontal=True,
-            key="llm_selector",
-        )
+    st.title("Data València Agent")
 
     st.sidebar.header("Acciones del Índice")
     if faiss_index_global.is_ready():
@@ -285,9 +271,8 @@ def main() -> None:
         display_conversation_view()
 
     st.markdown("---")
-    st.caption(
-        f"Desarrollado con {EMBEDDING_MODEL} y {st.session_state.get('current_llm_provider','N/A').value.upper()}."
-    )
+
+    st.caption(f"Desarrollado con {EMBEDDING_MODEL} y {settings.LLM_PROVIDER.value.upper()}.")
 
 
 def display_initial_view(faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
@@ -414,7 +399,7 @@ def display_conversation_view() -> None:
             st.warning("Introduce una consulta de seguimiento.")
 
     if col_reset.button("Finalizar y empezar de nuevo"):
-        keys_to_delete = [k for k in st.session_state.keys() if k not in ["current_llm_provider"]]
+        keys_to_delete = list(st.session_state.keys())
         for key in keys_to_delete:
             del st.session_state[key]
         st.rerun()
