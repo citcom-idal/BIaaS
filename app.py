@@ -28,8 +28,8 @@ from biaas.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
-from biaas.llm.interpreter import generate_insights
 from biaas.services.faiss_service import FaissService
+from biaas.services.insights_service import generate_insights
 from biaas.services.visual_planner_service import suggest_visualizations
 from biaas.utils import sanitize_filename
 
