@@ -1,0 +1,51 @@
+[project]
+name = "biaas"
+version = "0.1.0"
+description = "This project is a BI as a Service that utilizes data from the Valencia City Hall API to generate reports and visualizations. The application processes the data in real-time and provides relevant insights on various aspects of the city."
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "beautifulsoup4==4.14.3",
+    "faiss-cpu==1.13.2",
+    "google-genai==1.63.0",
+    "groq==1.0.0",
+    "ollama==0.6.1",
+    "pydantic-settings==2.12.0",
+    "python-dotenv==1.2.1",
+    "requests==2.32.5",
+    "sentence-transformers==5.2.2",
+    "streamlit[charts]==1.54.0",
+]
+
+[dependency-groups]
+dev = ["black==26.1.0", "ruff==0.15.0"]
+
+[tool.black]
+line-length = 100
+target-version = ["py313"]
+
+[tool.ruff]
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",      # pycodestyle errors
+    "W",      # pycodestyle warnings
+    "F",      # pyflakes
+    "I",      # isort
+    "B",      # flake8-bugbear
+    "C4",     # flake8-comprehensions
+    "UP",     # pyupgrade
+    "ARG001", # unused arguments in functions
+    "T201",   # print statements are not allowed
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "W191", # indentation contains tabs
+    "B904", # Allow raising exceptions without from e, for HTTPException
+]
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true

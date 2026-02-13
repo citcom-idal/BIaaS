@@ -1,5 +1,5 @@
 .env
 venv/
 __pycache__/
-*.idx
-*.pkl
+faiss_opendata_valencia.idx
+faiss_metadata.json
