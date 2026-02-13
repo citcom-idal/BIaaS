@@ -19,8 +19,6 @@ from biaas.config import (
     METADATA_FILE,
     settings,
 )
-from biaas.dataset.validator import validate_dataset_relevance
-from biaas.dataset.visualizer import plot_dataset
 from biaas.exceptions import (
     ExternalAPIError,
     PlannerError,
@@ -28,8 +26,10 @@ from biaas.exceptions import (
     PlotGenerationError,
 )
 from biaas.services.analysis_service import analyze_dataset
+from biaas.services.dataset_validator_service import validate_dataset_relevance
 from biaas.services.faiss_service import FaissService
 from biaas.services.insights_service import generate_insights
+from biaas.services.plot_service import plot_dataset
 from biaas.services.visual_planner_service import suggest_visualizations
 from biaas.utils import sanitize_filename
 
