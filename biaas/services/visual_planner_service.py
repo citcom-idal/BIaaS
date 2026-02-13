@@ -7,7 +7,7 @@ from biaas.exceptions import (
     PlannerError,
     PlannerJSONError,
 )
-from biaas.llm_adapter import get_llm_model
+from biaas.llm import get_llm_model
 
 
 def suggest_visualizations(

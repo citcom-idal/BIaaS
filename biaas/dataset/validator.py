@@ -1,5 +1,5 @@
 from biaas.exceptions import LLMModelError
-from biaas.llm_adapter import get_llm_model
+from biaas.llm import get_llm_model
 
 
 def validate_dataset_relevance(query: str, dataset_title: str, dataset_description: str) -> bool:
