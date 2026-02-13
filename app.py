@@ -19,7 +19,6 @@ from biaas.config import (
     METADATA_FILE,
     settings,
 )
-from biaas.dataset.analysis import analyze_dataset
 from biaas.dataset.validator import validate_dataset_relevance
 from biaas.dataset.visualizer import plot_dataset
 from biaas.exceptions import (
@@ -28,6 +27,7 @@ from biaas.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
+from biaas.services.analysis_service import analyze_dataset
 from biaas.services.faiss_service import FaissService
 from biaas.services.insights_service import generate_insights
 from biaas.services.visual_planner_service import suggest_visualizations
