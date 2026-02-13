@@ -13,9 +13,9 @@ from tenacity import (
     wait_exponential,
 )
 
-from biaas.core.config import CATALOG_LIST_URL
-from biaas.core.exceptions import ExternalAPIError
-from biaas.services.faiss_service import FaissService
+from app.core.config import CATALOG_LIST_URL
+from app.core.exceptions import ExternalAPIError
+from app.services.faiss_service import FaissService
 
 
 class APIQueryAgent:

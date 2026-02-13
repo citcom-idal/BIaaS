@@ -2,12 +2,12 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.core.exceptions import (
+from app.core.exceptions import (
     LLMModelError,
     PlannerError,
     PlannerJSONError,
 )
-from biaas.llm import get_llm_model
+from app.llm import get_llm_model
 
 
 def suggest_visualizations(

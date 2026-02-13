@@ -6,7 +6,7 @@ from typing import Any
 import faiss
 import numpy as np
 
-from biaas.core.config import INDEX_FILE, METADATA_FILE
+from app.core.config import INDEX_FILE, METADATA_FILE
 
 
 class FaissService:

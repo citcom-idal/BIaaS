@@ -1,8 +1,8 @@
-from biaas.core.config import LLMProvider, settings
-from biaas.llm.models.base import LLMModel
-from biaas.llm.models.gemini import GeminiLLMModel
-from biaas.llm.models.groq import GroqLLMModel
-from biaas.llm.models.ollama import OllamaLLMModel
+from app.core.config import LLMProvider, settings
+from app.llm.models.base import LLMModel
+from app.llm.models.gemini import GeminiLLMModel
+from app.llm.models.groq import GroqLLMModel
+from app.llm.models.ollama import OllamaLLMModel
 
 _registry: dict[LLMProvider, type[LLMModel]] = {
     LLMProvider.GEMINI: GeminiLLMModel,

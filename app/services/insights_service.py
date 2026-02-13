@@ -2,8 +2,8 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.core.exceptions import LLMModelError
-from biaas.llm import get_llm_model
+from app.core.exceptions import LLMModelError
+from app.llm import get_llm_model
 
 
 def generate_insights(

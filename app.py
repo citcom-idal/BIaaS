@@ -11,27 +11,27 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
-from biaas.core.config import (
+from app.core.config import (
     CATALOG_LIST_URL,
     EMBEDDING_MODEL,
     INDEX_FILE,
     METADATA_FILE,
     settings,
 )
-from biaas.core.exceptions import (
+from app.core.exceptions import (
     ExternalAPIError,
     PlannerError,
     PlannerJSONError,
     PlotGenerationError,
 )
-from biaas.services.analysis_service import analyze_dataset
-from biaas.services.api_query_agent_service import APIQueryAgent
-from biaas.services.dataset_validator_service import validate_dataset_relevance
-from biaas.services.faiss_service import FaissService
-from biaas.services.insights_service import generate_insights
-from biaas.services.plot_service import plot_dataset
-from biaas.services.visual_planner_service import suggest_visualizations
-from biaas.utils import sanitize_filename
+from app.services.analysis_service import analyze_dataset
+from app.services.api_query_agent_service import APIQueryAgent
+from app.services.dataset_validator_service import validate_dataset_relevance
+from app.services.faiss_service import FaissService
+from app.services.insights_service import generate_insights
+from app.services.plot_service import plot_dataset
+from app.services.visual_planner_service import suggest_visualizations
+from app.utils import sanitize_filename
 
 # --- Configuración del Logging ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
