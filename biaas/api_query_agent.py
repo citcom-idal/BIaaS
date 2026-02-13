@@ -15,15 +15,15 @@ from tenacity import (
 
 from biaas.config import CATALOG_LIST_URL
 from biaas.exceptions import ExternalAPIError
-from biaas.faiss_index import FAISSIndex
+from biaas.services.faiss_service import FaissService
 
 
 class APIQueryAgent:
     SIMILARITY_THRESHOLD = 0.45
 
-    def __init__(self, faiss_index: FAISSIndex, sentence_model: SentenceTransformer) -> None:
+    def __init__(self, faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
         self.model = sentence_model
-        self.faiss_index = faiss_index
+        self.faiss_service = faiss_service
 
     def get_embedding(self, text: str) -> np.ndarray:
         embedding = self.model.encode(text, normalize_embeddings=True)
@@ -34,13 +34,13 @@ class APIQueryAgent:
         return embedding.astype(np.float32)
 
     def search_dataset(self, query: str, top_k: int = 3) -> list[dict[str, Any]] | None:
-        if not self.faiss_index.is_ready():
+        if not self.faiss_service.is_ready():
             return None
 
         query_embedding = self.get_embedding(query)
 
         try:
-            return self.faiss_index.search(query_embedding, top_k=top_k)
+            return self.faiss_service.search(query_embedding, top_k=top_k)
         except Exception as e:
             st.error(f"APIQueryAgent: Error FAISS search: {e}")
             return None

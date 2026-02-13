@@ -9,7 +9,7 @@ import numpy as np
 from biaas.config import INDEX_FILE, METADATA_FILE
 
 
-class FAISSIndex:
+class FaissService:
     def __init__(self, index_path: str = INDEX_FILE, metadata_path: str = METADATA_FILE):
         self.index_path = index_path
         self.metadata_path = metadata_path

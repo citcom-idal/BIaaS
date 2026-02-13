@@ -29,9 +29,9 @@ from biaas.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
-from biaas.faiss_index import FAISSIndex
 from biaas.llm.interpreter import generate_insights
 from biaas.llm.visualizer import suggest_visualizations
+from biaas.services.faiss_service import FaissService
 from biaas.utils import sanitize_filename
 
 # --- Configuración del Logging ---
@@ -47,8 +47,8 @@ def get_sentence_transformer_model(model_name: str) -> SentenceTransformer:
 
 
 @st.cache_resource
-def get_faiss_index_instance() -> FAISSIndex:
-    instance = FAISSIndex()
+def get_faiss_index_instance() -> FaissService:
+    instance = FaissService()
     # Mover el mensaje de éxito/error a la función main para mejor control del flujo
     return instance
 
@@ -288,7 +288,7 @@ def main() -> None:
     )
 
 
-def display_initial_view(faiss_index: FAISSIndex, sentence_model: SentenceTransformer) -> None:
+def display_initial_view(faiss_index: FaissService, sentence_model: SentenceTransformer) -> None:
     st.markdown(
         "Bienvenido al asistente para explorar [Datos Abiertos del Ayuntamiento de Valencia](https://valencia.opendatasoft.com/pages/home/?flg=es-es)."
     )
