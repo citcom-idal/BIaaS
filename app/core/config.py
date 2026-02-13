@@ -2,7 +2,7 @@ import enum
 from pathlib import Path
 from typing import Self
 
-from pydantic import Field, HttpUrl, computed_field, model_validator
+from pydantic import HttpUrl, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -38,7 +38,7 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    LLM_PROVIDER: LLMProvider = Field(default=LLMProvider.OLLAMA)
+    LLM_PROVIDER: LLMProvider
     LLM_MODEL: str | None = None
 
     LLM_PROVIDER_API_KEY: str | None = None

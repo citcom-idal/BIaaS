@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 
-from biaas.exceptions import PlotGenerationError
+from app.core.exceptions import PlotGenerationError
 
 PLOT_FUNCTIONS: dict[str, Callable[..., go.Figure]] = {
     "histograma": px.histogram,

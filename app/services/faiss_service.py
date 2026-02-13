@@ -6,16 +6,15 @@ from typing import Any
 import faiss
 import numpy as np
 
-from biaas.config import INDEX_FILE, METADATA_FILE
+from app.core.config import INDEX_FILE, METADATA_FILE
 
 
-class FAISSIndex:
+class FaissService:
     def __init__(self, index_path: str = INDEX_FILE, metadata_path: str = METADATA_FILE):
         self.index_path = index_path
         self.metadata_path = metadata_path
         self.index = None
         self.metadata: list[Any] = []
-        self.load_index()
 
     def load_index(self) -> None:
         if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):

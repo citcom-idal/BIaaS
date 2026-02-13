@@ -1,5 +1,5 @@
-from biaas.exceptions import LLMModelError
-from biaas.llm.models import get_llm_model
+from app.core.exceptions import LLMModelError
+from app.llm import get_llm_model
 
 
 def validate_dataset_relevance(query: str, dataset_title: str, dataset_description: str) -> bool:
@@ -7,7 +7,7 @@ def validate_dataset_relevance(query: str, dataset_title: str, dataset_descripti
 
     try:
         llm_model = get_llm_model()
-        raw_response = llm_model.get_response(prompt, json_output=False)
+        raw_response = llm_model.get_raw_response(prompt)
     except LLMModelError:
         return False
 

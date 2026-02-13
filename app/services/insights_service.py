@@ -2,8 +2,8 @@ from typing import Any
 
 import pandas as pd
 
-from biaas.exceptions import LLMModelError
-from biaas.llm.models import get_llm_model
+from app.core.exceptions import LLMModelError
+from app.llm import get_llm_model
 
 
 def generate_insights(
@@ -31,6 +31,6 @@ Genera el resumen:"""
 
     try:
         llm_model = get_llm_model()
-        return llm_model.get_response(prompt, json_output=False)
+        return llm_model.get_raw_response(prompt)
     except LLMModelError:
         return "No se generaron insights"

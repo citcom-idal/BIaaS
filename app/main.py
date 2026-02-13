@@ -11,28 +11,27 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
-from biaas.api_query_agent import APIQueryAgent
-from biaas.config import (
+from app.core.config import (
     CATALOG_LIST_URL,
     EMBEDDING_MODEL,
     INDEX_FILE,
     METADATA_FILE,
-    LLMProvider,
     settings,
 )
-from biaas.dataset.analysis import analyze_dataset
-from biaas.dataset.validator import validate_dataset_relevance
-from biaas.dataset.visualizer import plot_dataset
-from biaas.exceptions import (
+from app.core.exceptions import (
     ExternalAPIError,
     PlannerError,
     PlannerJSONError,
     PlotGenerationError,
 )
-from biaas.faiss_index import FAISSIndex
-from biaas.llm.interpreter import generate_insights
-from biaas.llm.visualizer import suggest_visualizations
-from biaas.utils import sanitize_filename
+from app.services.analysis_service import analyze_dataset
+from app.services.api_query_agent_service import APIQueryAgent
+from app.services.dataset_validator_service import validate_dataset_relevance
+from app.services.faiss_service import FaissService
+from app.services.insights_service import generate_insights
+from app.services.plot_service import plot_dataset
+from app.services.visual_planner_service import suggest_visualizations
+from app.utils import sanitize_filename
 
 # --- Configuración del Logging ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -47,8 +46,8 @@ def get_sentence_transformer_model(model_name: str) -> SentenceTransformer:
 
 
 @st.cache_resource
-def get_faiss_index_instance() -> FAISSIndex:
-    instance = FAISSIndex()
+def get_faiss_index_instance() -> FaissService:
+    instance = FaissService()
     # Mover el mensaje de éxito/error a la función main para mejor control del flujo
     return instance
 
@@ -186,7 +185,7 @@ def build_and_save_index(
 def run_visualization_pipeline(
     user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
 ) -> None:
-    active_llm_provider = st.session_state.get("current_llm_provider", settings.LLM_PROVIDER).value
+    active_llm_provider = settings.LLM_PROVIDER.value
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
@@ -241,8 +240,6 @@ def run_visualization_pipeline(
 def main() -> None:
     st.set_page_config(layout="wide", page_title="Analista Datos Valencia")
 
-    if "current_llm_provider" not in st.session_state:
-        st.session_state.current_llm_provider = settings.LLM_PROVIDER
     if "active_df" not in st.session_state:
         st.session_state.active_df = None
     if "active_analysis" not in st.session_state:
@@ -257,18 +254,9 @@ def main() -> None:
     faiss_index_global = get_faiss_index_instance()
     sentence_model_global = get_sentence_transformer_model(EMBEDDING_MODEL)
 
-    col1, col2 = st.columns([3, 1])
-    col1.title("Data València Agent")
-    with col2:
-        available_llm_providers = list(LLMProvider)
-        st.session_state.current_llm_provider = st.radio(
-            "Selecciona LLM:",
-            options=available_llm_providers,
-            index=available_llm_providers.index(st.session_state.current_llm_provider),
-            format_func=lambda x: x.value,
-            horizontal=True,
-            key="llm_selector",
-        )
+    faiss_index_global.load_index()
+
+    st.title("Data València Agent")
 
     st.sidebar.header("Acciones del Índice")
     if faiss_index_global.is_ready():
@@ -283,17 +271,16 @@ def main() -> None:
         display_conversation_view()
 
     st.markdown("---")
-    st.caption(
-        f"Desarrollado con {EMBEDDING_MODEL} y {st.session_state.get('current_llm_provider','N/A').value.upper()}."
-    )
+
+    st.caption(f"Desarrollado con {EMBEDDING_MODEL} y {settings.LLM_PROVIDER.value.upper()}.")
 
 
-def display_initial_view(faiss_index: FAISSIndex, sentence_model: SentenceTransformer) -> None:
+def display_initial_view(faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
     st.markdown(
         "Bienvenido al asistente para explorar [Datos Abiertos del Ayuntamiento de Valencia](https://valencia.opendatasoft.com/pages/home/?flg=es-es)."
     )
 
-    if not faiss_index.is_ready():
+    if not faiss_service.is_ready():
         st.warning(
             "El índice de búsqueda no está listo. Por favor, constrúyelo desde el menú de la izquierda para poder analizar consultas."
         )
@@ -320,7 +307,7 @@ def display_initial_view(faiss_index: FAISSIndex, sentence_model: SentenceTransf
 
     if st.button("Analizar Consulta", type="primary"):
         if user_query_input:
-            api_agent = APIQueryAgent(faiss_index, sentence_model)
+            api_agent = APIQueryAgent(faiss_service, sentence_model)
             with st.spinner("Buscando y validando datasets..."):
                 search_results = api_agent.search_dataset(user_query_input, top_k=5)
                 valid_candidates = []
@@ -412,7 +399,7 @@ def display_conversation_view() -> None:
             st.warning("Introduce una consulta de seguimiento.")
 
     if col_reset.button("Finalizar y empezar de nuevo"):
-        keys_to_delete = [k for k in st.session_state.keys() if k not in ["current_llm_provider"]]
+        keys_to_delete = list(st.session_state.keys())
         for key in keys_to_delete:
             del st.session_state[key]
         st.rerun()

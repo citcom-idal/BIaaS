@@ -1,15 +1,13 @@
-import json
-import re
 from typing import Any
 
 import pandas as pd
 
-from biaas.exceptions import (
+from app.core.exceptions import (
     LLMModelError,
     PlannerError,
     PlannerJSONError,
 )
-from biaas.llm.models import get_llm_model
+from app.llm import get_llm_model
 
 
 def suggest_visualizations(
@@ -51,11 +49,7 @@ Genera el JSON:"""
 
     try:
         llm_model = get_llm_model()
-        raw_content = llm_model.get_response(prompt, json_output=True)
-
-        match_block = re.search(r"```json\s*([\s\S]*?)\s*```", raw_content, re.IGNORECASE)
-        cleaned_json = match_block.group(1).strip() if match_block else raw_content.strip()
-        visualizations = json.loads(cleaned_json)
+        raw_content, visualizations = llm_model.get_json_response(prompt)
 
         if isinstance(visualizations, dict):
             keys = list(visualizations.keys())
