@@ -29,8 +29,8 @@ from biaas.exceptions import (
     PlotGenerationError,
 )
 from biaas.llm.interpreter import generate_insights
-from biaas.llm.visualizer import suggest_visualizations
 from biaas.services.faiss_service import FaissService
+from biaas.services.visual_planner_service import suggest_visualizations
 from biaas.utils import sanitize_filename
 
 # --- Configuración del Logging ---
