@@ -3,7 +3,7 @@ from typing import Any
 import pandas as pd
 
 from biaas.exceptions import LLMModelError
-from biaas.llm.models import get_llm_model
+from biaas.llm_adapter import get_llm_model
 
 
 def generate_insights(
