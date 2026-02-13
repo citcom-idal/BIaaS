@@ -11,7 +11,6 @@ from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
-from biaas.api_query_agent import APIQueryAgent
 from biaas.config import (
     CATALOG_LIST_URL,
     EMBEDDING_MODEL,
@@ -26,6 +25,7 @@ from biaas.exceptions import (
     PlotGenerationError,
 )
 from biaas.services.analysis_service import analyze_dataset
+from biaas.services.api_query_agent_service import APIQueryAgent
 from biaas.services.dataset_validator_service import validate_dataset_relevance
 from biaas.services.faiss_service import FaissService
 from biaas.services.insights_service import generate_insights
