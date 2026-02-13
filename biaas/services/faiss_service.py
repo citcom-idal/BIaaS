@@ -15,7 +15,6 @@ class FaissService:
         self.metadata_path = metadata_path
         self.index = None
         self.metadata: list[Any] = []
-        self.load_index()
 
     def load_index(self) -> None:
         if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):

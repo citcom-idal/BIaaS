@@ -257,6 +257,8 @@ def main() -> None:
     faiss_index_global = get_faiss_index_instance()
     sentence_model_global = get_sentence_transformer_model(EMBEDDING_MODEL)
 
+    faiss_index_global.load_index()
+
     col1, col2 = st.columns([3, 1])
     col1.title("Data València Agent")
     with col2:
