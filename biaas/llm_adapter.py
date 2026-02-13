@@ -29,6 +29,12 @@ class LLMModel(abc.ABC):
 
         return json.loads(cleaned_json)
 
+    def _check_content(self, content: str, provider: str) -> str:
+        if not content:
+            raise LLMModelError(f"Error {provider}: Respuesta vacía.")
+
+        return content.strip()
+
     @abc.abstractmethod
     def get_raw_response(self, prompt: str) -> str:
         pass
@@ -58,10 +64,7 @@ class GroqLLMModel(LLMModel):
 
         content = chat_completion.choices[0].message.content
 
-        if not content:
-            raise LLMModelError("Error Groq: Respuesta vacía.")
-
-        return content.strip()
+        return self._check_content(content, "Groq")
 
     def get_raw_response(self, prompt: str) -> str:
         return self.__run_query(prompt, temperature=0.4, max_tokens=450, response_format=None)
@@ -130,12 +133,9 @@ class GeminiLLMModel(LLMModel):
             response.text if response.text and response.text.strip() else content_parts_text
         )
 
-        if not final_text:
-            raise LLMModelError("Error Gemini: Respuesta vacía.")
+        return self._check_content(final_text, "Gemini")
 
-        return final_text
-
-    def get_raw_response(self, prompt: str, json_output: bool = False) -> str:
+    def get_raw_response(self, prompt: str) -> str:
         return self.__run_query(
             prompt,
             config=GenerateContentConfig(
@@ -175,10 +175,7 @@ class OllamaLLMModel(LLMModel):
 
         content = response.message.content
 
-        if not content:
-            raise LLMModelError("Error Ollama: Respuesta vacía.")
-
-        return content.strip()
+        return self._check_content(content, "Ollama")
 
     def get_raw_response(self, prompt: str) -> str:
         return self.__run_query(prompt, format=None)
@@ -189,16 +186,17 @@ class OllamaLLMModel(LLMModel):
         return content, self._format_json(content)
 
 
+_registry: dict[LLMProvider, type[LLMModel]] = {
+    LLMProvider.GEMINI: GeminiLLMModel,
+    LLMProvider.GROQ: GroqLLMModel,
+    LLMProvider.OLLAMA: OllamaLLMModel,
+}
+
+
 def get_llm_model() -> LLMModel:
     llm_provider = settings.LLM_PROVIDER
 
-    if llm_provider == LLMProvider.GEMINI:
-        return GeminiLLMModel()
+    if llm_provider not in _registry:
+        raise ValueError(f"Error: Proveedor de LLM '{llm_provider}' no reconocido.")
 
-    if llm_provider == LLMProvider.GROQ:
-        return GroqLLMModel()
-
-    if llm_provider == LLMProvider.OLLAMA:
-        return OllamaLLMModel()
-
-    raise ValueError(f"Error: Proveedor de LLM '{llm_provider}' no reconocido.")
+    return _registry[llm_provider]()
