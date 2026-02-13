@@ -288,12 +288,12 @@ def main() -> None:
     )
 
 
-def display_initial_view(faiss_index: FaissService, sentence_model: SentenceTransformer) -> None:
+def display_initial_view(faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
     st.markdown(
         "Bienvenido al asistente para explorar [Datos Abiertos del Ayuntamiento de Valencia](https://valencia.opendatasoft.com/pages/home/?flg=es-es)."
     )
 
-    if not faiss_index.is_ready():
+    if not faiss_service.is_ready():
         st.warning(
             "El índice de búsqueda no está listo. Por favor, constrúyelo desde el menú de la izquierda para poder analizar consultas."
         )
@@ -320,7 +320,7 @@ def display_initial_view(faiss_index: FaissService, sentence_model: SentenceTran
 
     if st.button("Analizar Consulta", type="primary"):
         if user_query_input:
-            api_agent = APIQueryAgent(faiss_index, sentence_model)
+            api_agent = APIQueryAgent(faiss_service, sentence_model)
             with st.spinner("Buscando y validando datasets..."):
                 search_results = api_agent.search_dataset(user_query_input, top_k=5)
                 valid_candidates = []
