@@ -21,7 +21,6 @@ from app.schemas.dataset import DatasetMetadata
 from app.services.analysis_service import analyze_dataset
 from app.services.api_query_agent_service import APIQueryAgent
 from app.services.dataset_service import DatasetService
-from app.services.dataset_validator_service import validate_dataset_relevance
 from app.services.faiss_service import FaissService
 from app.services.insights_service import generate_insights
 from app.services.plot_service import plot_dataset
@@ -228,7 +227,11 @@ def main() -> None:
     st.caption(f"Desarrollado con {EMBEDDING_MODEL} y {settings.LLM_PROVIDER.value.upper()}.")
 
 
-def display_initial_view(faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
+def display_initial_view(
+    faiss_service: FaissService,
+    sentence_model: SentenceTransformer,
+    dataset_service: DatasetService,
+) -> None:
     st.markdown(
         "Bienvenido al asistente para explorar [Datos Abiertos del Ayuntamiento de Valencia](https://valencia.opendatasoft.com/pages/home/?flg=es-es)."
     )
@@ -266,13 +269,13 @@ def display_initial_view(faiss_service: FaissService, sentence_model: SentenceTr
                 valid_candidates = []
                 if search_results:
                     for result in search_results:
-                        if result[
-                            "similarity"
-                        ] > api_agent.SIMILARITY_THRESHOLD and validate_dataset_relevance(
+                        is_relevant = dataset_service.validate_relevance(
                             user_query_input,
                             result["metadata"]["title"],
                             result["metadata"]["description"],
-                        ):
+                        )
+
+                        if result["similarity"] > api_agent.SIMILARITY_THRESHOLD and is_relevant:
                             valid_candidates.append(result)
 
             if not valid_candidates:
