@@ -57,7 +57,7 @@ class APIQueryAgent:
 
         with httpx.Client(timeout=60) as client:
             try:
-                response = client.get(endpoint)
+                response = client.get(endpoint, params={"delimiter": ";"})
                 response.raise_for_status()
             except httpx.TimeoutException as e:
                 raise ExternalAPIError(f"Timeout al descargar {dataset_id}: {e}")
@@ -75,3 +75,43 @@ class APIQueryAgent:
         df.columns = df.columns.str.strip().str.replace(" ", "_").str.lower()
 
         return df
+
+    def fetch_datasets_count(self) -> int:
+        with httpx.Client(timeout=20) as client:
+            try:
+                params = {"limit": 1, "offset": 0}
+                response = client.get(CATALOG_LIST_URL, params=params)
+                response.raise_for_status()
+            except httpx.RequestError as e:
+                raise ExternalAPIError(f"Error de conexión al obtener lista de datasets: {e}")
+            except httpx.HTTPStatusError as e:
+                raise ExternalAPIError(
+                    f"Error HTTP {e.response.status_code} al obtener lista de datasets: {e}"
+                )
+            except httpx.TimeoutException as e:
+                raise ExternalAPIError(f"Timeout al obtener lista de datasets: {e}")
+            except Exception as e:
+                raise ExternalAPIError(f"Error inesperado al obtener lista de datasets: {e}")
+
+        data = response.json()
+
+        return data.get("total_count", 0)
+
+    def fetch_datasets_page(self, limit: int = 100, offset: int = 0) -> httpx.Response:
+        with httpx.Client(timeout=30) as client:
+            try:
+                params = {"limit": limit, "offset": offset}
+                response = client.get(CATALOG_LIST_URL, params=params)
+                response.raise_for_status()
+            except httpx.RequestError as e:
+                raise ExternalAPIError(f"Error de conexión al obtener lista de datasets: {e}")
+            except httpx.HTTPStatusError as e:
+                raise ExternalAPIError(
+                    f"Error HTTP {e.response.status_code} al obtener lista de datasets: {e}"
+                )
+            except httpx.TimeoutException as e:
+                raise ExternalAPIError(f"Timeout al obtener lista de datasets: {e}")
+            except Exception as e:
+                raise ExternalAPIError(f"Error inesperado al obtener lista de datasets: {e}")
+
+        return response
