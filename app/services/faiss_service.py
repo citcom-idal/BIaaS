@@ -7,6 +7,7 @@ import faiss
 import numpy as np
 
 from app.core.config import INDEX_FILE, METADATA_FILE
+from app.schemas.dataset import DatasetMetadata
 
 
 class FaissService:
@@ -56,3 +57,24 @@ class FaissService:
                         {"metadata": self.metadata[idx_val], "similarity": float(similarity_score)}
                     )
         return results
+
+    def process_and_save_index(
+        self, dataset_embeddings: list[np.ndarray], dataset_metadatas: list[DatasetMetadata]
+    ) -> int:
+        embeddings_np = np.array(dataset_embeddings).astype("float32")
+        d = embeddings_np.shape[1]
+
+        index = faiss.IndexFlatL2(d)
+        index.add(embeddings_np)
+
+        faiss.write_index(index, INDEX_FILE)
+
+        with open(METADATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(
+                [metadata.model_dump() for metadata in dataset_metadatas],
+                f,
+                ensure_ascii=False,
+                indent=2,
+            )
+
+        return index.ntotal
