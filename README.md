@@ -92,7 +92,7 @@ Para configurar las variables de entorno, copia el archivo `.env.example` a `.en
 ¡Ya está todo listo! Inicia la aplicación Streamlit con este comando:
 
 ```bash
-streamlit run app/main.py
+streamlit run
 ```
 
 La aplicación se abrirá automáticamente en una nueva pestaña de tu navegador.

@@ -4,7 +4,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import streamlit as st
-from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import (
@@ -31,9 +30,6 @@ from app.utils import sanitize_filename
 
 # --- Configuración del Logging ---
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
-
-# --- Configuración inicial ---
-load_dotenv()
 
 
 @st.cache_resource
@@ -360,7 +356,3 @@ def display_conversation_view() -> None:
         for key in keys_to_delete:
             del st.session_state[key]
         st.rerun()
-
-
-if __name__ == "__main__":
-    main()
