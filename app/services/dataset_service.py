@@ -4,6 +4,7 @@ import numpy as np
 from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 
+from app.core.config import DATASET_SIMILARITY_THRESHOLD
 from app.core.exceptions import LLMModelError
 from app.llm.factory import get_llm_model
 from app.schemas.dataset import DatasetMetadata
@@ -14,7 +15,12 @@ class DatasetService:
         self.model = model
         self.llm_model = get_llm_model()
 
-    def validate_relevance(self, query: str, dataset_title: str, dataset_description: str) -> bool:
+    def validate_relevance(
+        self, query: str, dataset_title: str, dataset_description: str, dataset_similarity: float
+    ) -> bool:
+        if dataset_similarity < DATASET_SIMILARITY_THRESHOLD:
+            return False
+
         prompt = f"""Evalúa la relevancia. Consulta: "{query}". Dataset: Título="{dataset_title}", Desc="{dataset_description[:300]}". ¿Es este dataset ALTAMENTE relevante para la consulta? Responde solo con 'Sí' o 'No'."""
 
         try:

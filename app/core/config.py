@@ -16,6 +16,8 @@ CATALOG_LIST_URL = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"
 
 EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
 
+DATASET_SIMILARITY_THRESHOLD = 0.45
+
 
 class LLMProvider(enum.Enum):
     GEMINI = "gemini"

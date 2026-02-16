@@ -19,8 +19,6 @@ from app.services.faiss_service import FaissService
 
 
 class APIQueryAgent:
-    SIMILARITY_THRESHOLD = 0.45
-
     def __init__(self, faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
         self.model = sentence_model
         self.faiss_service = faiss_service

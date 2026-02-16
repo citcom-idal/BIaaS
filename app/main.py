@@ -205,6 +205,7 @@ def main() -> None:
 
     faiss_index_global = get_faiss_index_instance()
     sentence_model_global = get_sentence_transformer_model(EMBEDDING_MODEL)
+    dataset_service = DatasetService(sentence_model_global)
 
     faiss_index_global.load_index()
 
@@ -218,7 +219,7 @@ def main() -> None:
         build_and_save_index()
 
     if st.session_state.active_df is None:
-        display_initial_view(faiss_index_global, sentence_model_global)
+        display_initial_view(faiss_index_global, sentence_model_global, dataset_service)
     else:
         display_conversation_view()
 
@@ -269,13 +270,12 @@ def display_initial_view(
                 valid_candidates = []
                 if search_results:
                     for result in search_results:
-                        is_relevant = dataset_service.validate_relevance(
-                            user_query_input,
-                            result["metadata"]["title"],
-                            result["metadata"]["description"],
-                        )
-
-                        if result["similarity"] > api_agent.SIMILARITY_THRESHOLD and is_relevant:
+                        if dataset_service.validate_relevance(
+                            query=user_query_input,
+                            dataset_title=result["metadata"]["title"],
+                            dataset_description=result["metadata"]["description"],
+                            dataset_similarity=result["similarity"],
+                        ):
                             valid_candidates.append(result)
 
             if not valid_candidates:
