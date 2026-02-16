@@ -7,7 +7,7 @@ from sentence_transformers import SentenceTransformer
 from app.core.config import DATASET_SIMILARITY_THRESHOLD
 from app.core.exceptions import DatasetNotFoundError, LLMModelError
 from app.llm.factory import get_llm_model
-from app.schemas.dataset import DatasetMetadata
+from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
 from app.services.faiss_service import FaissService
 
 
@@ -19,7 +19,7 @@ class DatasetService:
         self.faiss_service = faiss_service
         self.llm_model = get_llm_model()
 
-    def search_dataset(self, query: str, top_k: int = 3) -> list[dict[str, Any]] | None:
+    def search_dataset(self, query: str, top_k: int = 3) -> list[DatasetSearchResult] | None:
         query_embedding = self.sentence_transformer.encode(query, normalize_embeddings=True)
 
         try:
@@ -27,13 +27,11 @@ class DatasetService:
         except Exception as e:
             raise DatasetNotFoundError(f"Error FAISS search: {e}")
 
-    def validate_relevance(
-        self, query: str, dataset_title: str, dataset_description: str, dataset_similarity: float
-    ) -> bool:
-        if dataset_similarity < DATASET_SIMILARITY_THRESHOLD:
+    def validate_relevance(self, query: str, dataset_search_result: DatasetSearchResult) -> bool:
+        if dataset_search_result.similarity < DATASET_SIMILARITY_THRESHOLD:
             return False
 
-        prompt = f"""Evalúa la relevancia. Consulta: "{query}". Dataset: Título="{dataset_title}", Desc="{dataset_description[:300]}". ¿Es este dataset ALTAMENTE relevante para la consulta? Responde solo con 'Sí' o 'No'."""
+        prompt = f"""Evalúa la relevancia. Consulta: "{query}". Dataset: Título="{dataset_search_result.metadata.title}", Desc="{dataset_search_result.metadata.description[:300]}". ¿Es este dataset ALTAMENTE relevante para la consulta? Responde solo con 'Sí' o 'No'."""
 
         try:
             raw_response = self.llm_model.get_raw_response(prompt)

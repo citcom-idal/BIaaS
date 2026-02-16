@@ -18,7 +18,7 @@ from app.core.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
-from app.schemas.dataset import DatasetMetadata
+from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
 from app.services.analysis_service import analyze_dataset
 from app.services.api_query_agent_service import APIQueryAgent
 from app.services.dataset_service import DatasetService
@@ -47,8 +47,8 @@ def get_faiss_index_instance() -> FaissService:
 def build_and_save_index() -> None:
     faiss_service = get_faiss_index_instance()
     sentence_model_instance = get_sentence_transformer_model(EMBEDDING_MODEL)
-    api_query_agent = APIQueryAgent(faiss_service, sentence_model_instance)
-    dataset_service = DatasetService(sentence_model_instance)
+    api_query_agent = APIQueryAgent()
+    dataset_service = DatasetService(sentence_model_instance, faiss_service)
 
     st.header(f"Construyendo Índice FAISS para: {EMBEDDING_MODEL}")
 
@@ -272,14 +272,11 @@ def display_initial_view(
                     st.error(str(e))
                     search_results = None
 
-                valid_candidates = []
+                valid_candidates: list[DatasetSearchResult] = []
                 if search_results:
                     for result in search_results:
                         if dataset_service.validate_relevance(
-                            query=user_query_input,
-                            dataset_title=result["metadata"]["title"],
-                            dataset_description=result["metadata"]["description"],
-                            dataset_similarity=result["similarity"],
+                            query=user_query_input, dataset_search_result=result
                         ):
                             valid_candidates.append(result)
 
@@ -293,17 +290,17 @@ def display_initial_view(
                     ):
                         st.json(
                             [
-                                {"title": r["metadata"]["title"], "similarity": r["similarity"]}
+                                {"title": r.metadata.title, "similarity": r.similarity}
                                 for r in search_results
                             ]
                         )
                 return
 
             selected_dataset_info = sorted(
-                valid_candidates, key=lambda x: x["similarity"], reverse=True
+                valid_candidates, key=lambda x: x.similarity, reverse=True
             )[0]
-            dataset_id = selected_dataset_info["metadata"]["id"]
-            dataset_title = selected_dataset_info["metadata"]["title"]
+            dataset_id = selected_dataset_info.metadata.id
+            dataset_title = selected_dataset_info.metadata.title
 
             with st.spinner(f"Descargando y analizando '{dataset_title}'..."):
                 try:

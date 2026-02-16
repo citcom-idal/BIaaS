@@ -8,3 +8,8 @@ class DatasetMetadata(BaseModel):
 
     def header(self) -> str:
         return f"título: {self.title}; descripción: {self.description}"
+
+
+class DatasetSearchResult(BaseModel):
+    metadata: DatasetMetadata
+    similarity: float

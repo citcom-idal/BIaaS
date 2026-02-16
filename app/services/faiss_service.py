@@ -1,13 +1,13 @@
 import json
 import logging
 import os
-from typing import Any
 
 import faiss
 import numpy as np
+from pydantic import TypeAdapter
 
 from app.core.config import INDEX_FILE, METADATA_FILE
-from app.schemas.dataset import DatasetMetadata
+from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
 
 
 class FaissService:
@@ -23,7 +23,8 @@ class FaissService:
                 self.index = faiss.read_index(self.index_path)
                 with open(self.metadata_path, encoding="utf-8") as f:
                     metata_json = json.load(f)
-                    self.metadata = [DatasetMetadata.model_validate(item) for item in metata_json]
+                    adapter = TypeAdapter(list[DatasetMetadata])
+                    self.metadata = adapter.validate_python(metata_json)
 
                 logging.info(
                     f"Índice FAISS y metadatos JSON cargados correctamente. {self.index.ntotal} vectores."
@@ -41,23 +42,30 @@ class FaissService:
     def is_ready(self) -> bool:
         return self.index is not None and self.index.ntotal > 0
 
-    def search(self, query_embedding: np.ndarray, top_k: int = 1) -> list[dict[str, Any]]:
+    def search(self, query_embedding: np.ndarray, top_k: int = 1) -> list[DatasetSearchResult]:
         if not self.is_ready():
             return []
+
         norm = np.linalg.norm(query_embedding)
+
         if norm == 0:
             return []
+
         query_embedding_norm = (query_embedding / norm).astype(np.float32).reshape(1, -1)
         distances, indices = self.index.search(query_embedding_norm, top_k)
 
-        results = []
+        results: list[DatasetSearchResult] = []
+
         if indices.size > 0:
             for i, idx_val in enumerate(indices[0]):
                 if idx_val != -1 and idx_val < len(self.metadata):
                     similarity_score = 1 - (distances[0][i] ** 2) / 2
                     results.append(
-                        {"metadata": self.metadata[idx_val], "similarity": float(similarity_score)}
+                        DatasetSearchResult(
+                            metadata=self.metadata[idx_val], similarity=float(similarity_score)
+                        )
                     )
+
         return results
 
     def process_and_save_index(
