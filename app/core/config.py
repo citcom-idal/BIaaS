@@ -5,7 +5,7 @@ from typing import Self
 from pydantic import HttpUrl, computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
 INDEX_FILE = str(BASE_DIR / "faiss_opendata_valencia.idx")
