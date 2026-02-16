@@ -14,15 +14,17 @@ class FaissService:
     def __init__(self, index_path: str = INDEX_FILE, metadata_path: str = METADATA_FILE):
         self.index_path = index_path
         self.metadata_path = metadata_path
-        self.index = None
-        self.metadata: list[Any] = []
+        self.index: faiss.IndexFlatL2 | None = None
+        self.metadata: list[DatasetMetadata] = []
 
     def load_index(self) -> None:
         if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):
             try:
                 self.index = faiss.read_index(self.index_path)
                 with open(self.metadata_path, encoding="utf-8") as f:
-                    self.metadata = json.load(f)
+                    metata_json = json.load(f)
+                    self.metadata = [DatasetMetadata.model_validate(item) for item in metata_json]
+
                 logging.info(
                     f"Índice FAISS y metadatos JSON cargados correctamente. {self.index.ntotal} vectores."
                 )

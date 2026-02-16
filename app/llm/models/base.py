@@ -14,7 +14,7 @@ class LLMModel(abc.ABC):
 
         return json.loads(cleaned_json)
 
-    def _check_content(self, content: str, provider: str) -> str:
+    def _check_content(self, content: str | None, provider: str) -> str:
         if not content:
             raise LLMModelError(f"Error {provider}: Respuesta vacía.")
 

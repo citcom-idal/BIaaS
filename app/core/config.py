@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     LLM_MODEL: str | None = None
 
     LLM_PROVIDER_API_KEY: str | None = None
-    OLLAMA_HOST: HttpUrl = "http://localhost:11434"
+    OLLAMA_HOST: HttpUrl = HttpUrl("http://localhost:11434")
 
     @computed_field
     @property

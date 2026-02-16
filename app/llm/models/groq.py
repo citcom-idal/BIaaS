@@ -1,7 +1,7 @@
 import re
 from typing import Any
 
-from groq import Groq
+from groq import Groq, Omit, omit
 from groq.types.chat.completion_create_params import (
     ResponseFormat as GroqResponseFormat,
 )
@@ -16,7 +16,11 @@ class GroqLLMModel(LLMModel):
         self.client = Groq(api_key=settings.LLM_PROVIDER_API_KEY)
 
     def __run_query(
-        self, prompt: str, temperature: float, max_tokens: int, response_format: GroqResponseFormat
+        self,
+        prompt: str,
+        temperature: float,
+        max_tokens: int,
+        response_format: GroqResponseFormat | Omit | None = omit,
     ) -> str:
         try:
             chat_completion = self.client.chat.completions.create(
@@ -34,7 +38,7 @@ class GroqLLMModel(LLMModel):
         return self._check_content(content, "Groq")
 
     def get_raw_response(self, prompt: str) -> str:
-        return self.__run_query(prompt, temperature=0.4, max_tokens=450, response_format=None)
+        return self.__run_query(prompt, temperature=0.4, max_tokens=450)
 
     def get_json_response(self, prompt: str) -> tuple[str, Any]:
         content = self.__run_query(
