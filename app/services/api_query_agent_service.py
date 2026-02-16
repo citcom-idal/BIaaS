@@ -1,11 +1,7 @@
 import io
-from typing import Any
 
 import httpx
-import numpy as np
 import pandas as pd
-import streamlit as st
-from sentence_transformers import SentenceTransformer
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -15,34 +11,9 @@ from tenacity import (
 
 from app.core.config import CATALOG_LIST_URL
 from app.core.exceptions import ExternalAPIError
-from app.services.faiss_service import FaissService
 
 
 class APIQueryAgent:
-    def __init__(self, faiss_service: FaissService, sentence_model: SentenceTransformer) -> None:
-        self.model = sentence_model
-        self.faiss_service = faiss_service
-
-    def get_embedding(self, text: str) -> np.ndarray:
-        embedding = self.model.encode(text, normalize_embeddings=True)
-
-        if embedding.ndim == 1:
-            embedding = embedding.reshape(1, -1)
-
-        return embedding.astype(np.float32)
-
-    def search_dataset(self, query: str, top_k: int = 3) -> list[dict[str, Any]] | None:
-        if not self.faiss_service.is_ready():
-            return None
-
-        query_embedding = self.get_embedding(query)
-
-        try:
-            return self.faiss_service.search(query_embedding, top_k=top_k)
-        except Exception as e:
-            st.error(f"APIQueryAgent: Error FAISS search: {e}")
-            return None
-
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(min=2, max=10),

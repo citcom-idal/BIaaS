@@ -12,6 +12,7 @@ from app.core.config import (
     settings,
 )
 from app.core.exceptions import (
+    DatasetNotFoundError,
     ExternalAPIError,
     PlannerError,
     PlannerJSONError,
@@ -205,7 +206,7 @@ def main() -> None:
 
     faiss_index_global = get_faiss_index_instance()
     sentence_model_global = get_sentence_transformer_model(EMBEDDING_MODEL)
-    dataset_service = DatasetService(sentence_model_global)
+    dataset_service = DatasetService(sentence_model_global, faiss_index_global)
 
     faiss_index_global.load_index()
 
@@ -219,7 +220,7 @@ def main() -> None:
         build_and_save_index()
 
     if st.session_state.active_df is None:
-        display_initial_view(faiss_index_global, sentence_model_global, dataset_service)
+        display_initial_view(faiss_index_global, dataset_service)
     else:
         display_conversation_view()
 
@@ -230,7 +231,6 @@ def main() -> None:
 
 def display_initial_view(
     faiss_service: FaissService,
-    sentence_model: SentenceTransformer,
     dataset_service: DatasetService,
 ) -> None:
     st.markdown(
@@ -264,9 +264,14 @@ def display_initial_view(
 
     if st.button("Analizar Consulta", type="primary"):
         if user_query_input:
-            api_agent = APIQueryAgent(faiss_service, sentence_model)
+            api_agent = APIQueryAgent()
             with st.spinner("Buscando y validando datasets..."):
-                search_results = api_agent.search_dataset(user_query_input, top_k=5)
+                try:
+                    search_results = dataset_service.search_dataset(user_query_input, top_k=5)
+                except DatasetNotFoundError as e:
+                    st.error(str(e))
+                    search_results = None
+
                 valid_candidates = []
                 if search_results:
                     for result in search_results:

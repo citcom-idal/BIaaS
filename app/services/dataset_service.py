@@ -5,15 +5,27 @@ from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import DATASET_SIMILARITY_THRESHOLD
-from app.core.exceptions import LLMModelError
+from app.core.exceptions import DatasetNotFoundError, LLMModelError
 from app.llm.factory import get_llm_model
 from app.schemas.dataset import DatasetMetadata
+from app.services.faiss_service import FaissService
 
 
 class DatasetService:
-    def __init__(self, model: SentenceTransformer) -> None:
-        self.model = model
+    def __init__(
+        self, sentence_transformer: SentenceTransformer, faiss_service: FaissService
+    ) -> None:
+        self.sentence_transformer = sentence_transformer
+        self.faiss_service = faiss_service
         self.llm_model = get_llm_model()
+
+    def search_dataset(self, query: str, top_k: int = 3) -> list[dict[str, Any]] | None:
+        query_embedding = self.sentence_transformer.encode(query, normalize_embeddings=True)
+
+        try:
+            return self.faiss_service.search(query_embedding, top_k=top_k)
+        except Exception as e:
+            raise DatasetNotFoundError(f"Error FAISS search: {e}")
 
     def validate_relevance(
         self, query: str, dataset_title: str, dataset_description: str, dataset_similarity: float
@@ -56,7 +68,7 @@ class DatasetService:
             embeddings_metadata.append(dataset)
 
         if texts_for_page:
-            page_embeddings = self.model.encode(
+            page_embeddings = self.sentence_transformer.encode(
                 texts_for_page, normalize_embeddings=True, show_progress_bar=False
             )
             embeddings.extend(page_embeddings)

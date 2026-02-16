@@ -1,6 +1,13 @@
 from typing import Literal
 
 
+class DatasetNotFoundError(Exception):
+    """Exception raised when a dataset is not found."""
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+
+
 class LLMModelError(Exception):
     """Base exception for LLM model errors."""
 
