@@ -1,21 +1,15 @@
-import json
 import logging
 from typing import Any
 
-import faiss
 import numpy as np
 import pandas as pd
-import requests
 import streamlit as st
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import (
-    CATALOG_LIST_URL,
     EMBEDDING_MODEL,
     INDEX_FILE,
-    METADATA_FILE,
     settings,
 )
 from app.core.exceptions import (
@@ -24,8 +18,10 @@ from app.core.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
+from app.schemas.dataset import DatasetMetadata
 from app.services.analysis_service import analyze_dataset
 from app.services.api_query_agent_service import APIQueryAgent
+from app.services.dataset_service import DatasetService
 from app.services.dataset_validator_service import validate_dataset_relevance
 from app.services.faiss_service import FaissService
 from app.services.insights_service import generate_insights
@@ -52,21 +48,16 @@ def get_faiss_index_instance() -> FaissService:
     return instance
 
 
-def build_and_save_index(
-    target_model_name: str = EMBEDDING_MODEL,
-    index_path_to_save: str = INDEX_FILE,
-    metadata_path_to_save: str = METADATA_FILE,
-) -> None:
-    st.header(f"Construyendo Índice FAISS para: {target_model_name}")
+def build_and_save_index() -> None:
+    faiss_service = get_faiss_index_instance()
+    sentence_model_instance = get_sentence_transformer_model(EMBEDDING_MODEL)
+    api_query_agent = APIQueryAgent(faiss_service, sentence_model_instance)
+    dataset_service = DatasetService(sentence_model_instance)
 
-    try:
-        sentence_model_instance = get_sentence_transformer_model(target_model_name)
-    except Exception as e:
-        st.error(f"Error al cargar el modelo de embeddings: {e}")
-        return
+    st.header(f"Construyendo Índice FAISS para: {EMBEDDING_MODEL}")
 
-    all_metadata: list[Any] = []
-    all_embeddings_list: list[Any] = []
+    dataset_embeddings: list[np.ndarray] = []
+    dataset_metadatas: list[DatasetMetadata] = []
 
     limit = 100
     start = 0
@@ -74,18 +65,16 @@ def build_and_save_index(
 
     with st.spinner("Obteniendo catálogo de datasets de OpenData Valencia..."):
         try:
-            initial_response = requests.get(
-                CATALOG_LIST_URL, params={"limit": 1, "offset": 0}, timeout=20
-            )
-            initial_response.raise_for_status()
-            total_datasets = initial_response.json().get("total_count", 0)
+            total_datasets = api_query_agent.fetch_datasets_count()
+
             if total_datasets == 0:
                 st.warning("No se encontraron datasets en el catálogo.")
                 return
+
             st.info(
                 f"Se encontraron {total_datasets} datasets. Procediendo a generar embeddings..."
             )
-        except requests.exceptions.RequestException as e:
+        except ExternalAPIError as e:
             st.error(f"Error crítico al conectar con la API de OpenData Valencia: {e}")
             return
 
@@ -95,8 +84,7 @@ def build_and_save_index(
     while start < total_datasets:
         try:
             status_area.write(f"Obteniendo página de datasets... offset={start}, limit={limit}")
-            params = {"limit": limit, "offset": start}
-            response = requests.get(CATALOG_LIST_URL, params=params, timeout=30)
+            response = api_query_agent.fetch_datasets_page(limit=limit, offset=start)
 
             if response.status_code != 200:
                 status_area.warning(
@@ -114,32 +102,10 @@ def build_and_save_index(
                 )
                 break
 
-            texts_for_page = []
-            metadata_for_page = []
+            embeddings, metadata = dataset_service.generate_dataset_embeddings(datasets_page)
 
-            for dataset_info in datasets_page:
-                dataset = dataset_info.get("dataset", {})
-                dataset_id = dataset.get("dataset_id", "")
-                meta = dataset.get("metas", {}).get("default", {})
-                title = meta.get("title", "Sin título")
-                description_html = meta.get("description", "")
-                description = (
-                    BeautifulSoup(description_html, "html.parser").get_text().strip()
-                    if description_html
-                    else ""
-                )
-
-                texts_for_page.append(f"título: {title}; descripción: {description}")
-                metadata_for_page.append(
-                    {"id": dataset_id, "title": title, "description": description}
-                )
-
-            if texts_for_page:
-                page_embeddings = sentence_model_instance.encode(
-                    texts_for_page, normalize_embeddings=True, show_progress_bar=False
-                )
-                all_embeddings_list.extend(page_embeddings)
-                all_metadata.extend(metadata_for_page)
+            dataset_embeddings.extend(embeddings)
+            dataset_metadatas.extend(metadata)
 
             start += len(datasets_page)
             progress_bar.progress(
@@ -147,14 +113,11 @@ def build_and_save_index(
                 text=f"Procesados {start}/{total_datasets} datasets",
             )
 
-        except requests.exceptions.RequestException as e:
-            st.error(f"Error de red en offset {start}. Deteniendo... Error: {e}")
-            break
-        except Exception as e:
-            st.error(f"Ocurrió un error inesperado en offset {start}: {e}")
+        except ExternalAPIError as e:
+            st.error(str(e))
             break
 
-    if not all_embeddings_list:
+    if not dataset_embeddings:
         st.error(
             "No se pudieron generar embeddings. El proceso ha fallado. Revisa los mensajes de estado de la API."
         )
@@ -163,20 +126,14 @@ def build_and_save_index(
     progress_bar.empty()
     status_area.empty()
 
-    st.info(f"Construyendo y guardando el índice FAISS en {index_path_to_save}...")
+    st.info(f"Construyendo y guardando el índice FAISS en {INDEX_FILE}...")
 
-    with st.spinner(f"Construyendo y guardando el índice FAISS en {index_path_to_save}..."):
-        embeddings_np = np.array(all_embeddings_list).astype("float32")
-        d = embeddings_np.shape[1]
-        index = faiss.IndexFlatL2(d)
-        index.add(embeddings_np)
+    with st.spinner(f"Construyendo y guardando el índice FAISS en {INDEX_FILE}..."):
+        saved_vector_count = faiss_service.process_and_save_index(
+            dataset_embeddings, dataset_metadatas
+        )
 
-        faiss.write_index(index, index_path_to_save)
-
-        with open(metadata_path_to_save, "w", encoding="utf-8") as f:
-            json.dump(all_metadata, f, ensure_ascii=False, indent=2)
-
-    st.success(f"¡Índice FAISS con {index.ntotal} vectores construido y guardado con éxito!")
+    st.success(f"¡Índice FAISS con {saved_vector_count} vectores construido y guardado con éxito!")
     st.balloons()
     st.info("La página se recargará para usar el nuevo índice.")
     st.rerun()
