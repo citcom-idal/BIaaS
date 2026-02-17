@@ -7,9 +7,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
+DATA_DIR = BASE_DIR / "data"
 
-INDEX_FILE = str(BASE_DIR / "faiss_opendata_valencia.idx")
-METADATA_FILE = str(BASE_DIR / "faiss_metadata.json")
+INDEX_FILE = DATA_DIR / "faiss_opendata_valencia.idx"
+METADATA_FILE = DATA_DIR / "faiss_metadata.json"
 
 BASE_URL = "https://valencia.opendatasoft.com/api/explore/v2.1/"
 CATALOG_LIST_URL = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"

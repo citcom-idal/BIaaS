@@ -1,6 +1,5 @@
 import json
 import logging
-import os
 
 import faiss
 import numpy as np
@@ -11,33 +10,32 @@ from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
 
 
 class FaissService:
-    def __init__(self, index_path: str = INDEX_FILE, metadata_path: str = METADATA_FILE):
-        self.index_path = index_path
-        self.metadata_path = metadata_path
-        self.index: faiss.IndexFlatL2 | None = None
+    def __init__(self):
+        self.index: faiss.Index | None = None
         self.metadata: list[DatasetMetadata] = []
 
     def load_index(self) -> None:
-        if os.path.exists(self.index_path) and os.path.exists(self.metadata_path):
-            try:
-                self.index = faiss.read_index(self.index_path)
-                with open(self.metadata_path, encoding="utf-8") as f:
-                    metata_json = json.load(f)
-                    adapter = TypeAdapter(list[DatasetMetadata])
-                    self.metadata = adapter.validate_python(metata_json)
+        try:
+            self.index = faiss.read_index(str(INDEX_FILE))
 
-                logging.info(
-                    f"Índice FAISS y metadatos JSON cargados correctamente. {self.index.ntotal} vectores."
-                )
-            except Exception as e:
-                logging.error(f"Error al cargar índice o metadatos: {e}")
-                self.index = None
-                self.metadata = []
-        else:
+            with open(METADATA_FILE, encoding="utf-8") as f:
+                metata_json = json.load(f)
+                adapter = TypeAdapter(list[DatasetMetadata])
+                self.metadata = adapter.validate_python(metata_json)
+
+            logging.info(
+                f"Índice FAISS y metadatos JSON cargados correctamente. {self.index.ntotal} vectores."
+            )
+        except FileNotFoundError:
             logging.warning(
-                f"No se encontraron los ficheros del índice en {self.index_path} o {self.metadata_path}"
+                f"No se encontraron los ficheros del índice en {INDEX_FILE} o {METADATA_FILE}"
             )
             self.index = None
+            self.metadata = []
+        except Exception as e:
+            logging.error(f"Error al cargar índice o metadatos: {e}")
+            self.index = None
+            self.metadata = []
 
     def is_ready(self) -> bool:
         return self.index is not None and self.index.ntotal > 0
@@ -77,14 +75,20 @@ class FaissService:
         index = faiss.IndexFlatL2(d)
         index.add(embeddings_np)
 
-        faiss.write_index(index, INDEX_FILE)
+        tmp_index_file = INDEX_FILE.with_suffix(".tmp")
+        tmp_metadata_file = METADATA_FILE.with_suffix(".tmp")
 
-        with open(METADATA_FILE, "w", encoding="utf-8") as f:
+        faiss.write_index(index, str(tmp_index_file))
+
+        with open(tmp_metadata_file, "w", encoding="utf-8") as f:
             json.dump(
                 [metadata.model_dump() for metadata in dataset_metadatas],
                 f,
                 ensure_ascii=False,
                 indent=2,
             )
+
+        tmp_index_file.replace(INDEX_FILE)
+        tmp_metadata_file.replace(METADATA_FILE)
 
         return index.ntotal
