@@ -27,12 +27,12 @@ El proyecto sigue una arquitectura modular basada en agentes, donde cada compone
   - **Índice Vectorial**: `FAISS`
 - **Modelos de Lenguaje (LLMs)**:
   - `Google Gemini` (a través de `google-genai`)
-  - `Llama 3` (a través de `groq`)
-  - `Llama 3` (a través de `ollama`)
+  - `Groq` (a través de `groq`)
+  - `Ollama` (a través de `ollama`)
 - **Análisis y Manipulación de Datos**: `Pandas`, `NumPy`
 - **Visualización**: `Plotly Express`
 - **Gestión de Dependencias**: `uv`
-- **Gestión de Secrets**: `python-dotenv`
+- **Gestión de Secrets**: `pydantic-settings`
 
 > [!IMPORTANT]
 > El proyecto está diseñado para que solo se pueda usar un proveedor de LLM a la vez.
@@ -83,7 +83,14 @@ Esto creará un entorno virtual `.venv` en la raíz del proyecto e instalará to
 
 El proyecto necesita que se configure un proveedor de LLM para funcionar. Actualmente soporta Ollama, Google Gemini y Groq.
 
-Para usar Google Gemini o Groq, necesitas obtener tus claves API de cada servicio. En el caso de Ollama, necesitar proporcionar la URL de tu instancia local (que por defecto es `http://localhost:11434`).
+Para usar Google Gemini o Groq, necesitas obtener tus claves API de cada servicio. En el caso de Ollama, necesitar proporcionar la URL de tu instancia local (que por defecto es `http://localhost:11434`). Además, deberás configurar el modelo LLM que quieres con ese proveedor.
+
+> [!NOTE]
+> Se recomiendan usar los siguientes modelos:
+>
+> - Ollama: `codestral`
+> - Google Gemini: `gemini-1.5-flash-latest`
+> - Groq: `llama3-70b-8192`
 
 Para configurar las variables de entorno, copia el archivo `.env.example` a `.env` y agrega los valores que necesites.
 
