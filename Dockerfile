@@ -39,6 +39,9 @@ COPY --chown=biaas:biaas ./streamlit_app.py ./
 
 ENV PATH="/home/biaas/code/.venv/bin:$PATH"
 
+ARG ROOT_PATH
+ENV ROOT_PATH=${ROOT_PATH:-}
+
 USER biaas
 
 EXPOSE 8501
@@ -46,4 +49,4 @@ EXPOSE 8501
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8501/healthz || exit 1
 
-CMD [ "streamlit", "run", "streamlit_app.py", "--server.port=8501", "--server.address=0.0.0.0" ]
+CMD [ "sh", "-c", "exec streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.baseUrlPath=$ROOT_PATH" ]
