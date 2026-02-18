@@ -40,7 +40,7 @@ class GeminiLLMModel(LLMModel):
     def __run_query(self, prompt: str, config: GeminiConfig) -> str:
         try:
             response = self.client.models.generate_content(
-                model=settings.resolved_llm_model,
+                model=settings.LLM_MODEL,
                 contents=prompt,
                 config=config,
             )

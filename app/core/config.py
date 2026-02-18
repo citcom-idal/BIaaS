@@ -2,7 +2,7 @@ import enum
 from pathlib import Path
 from typing import Self
 
-from pydantic import HttpUrl, computed_field, model_validator
+from pydantic import HttpUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -26,13 +26,6 @@ class LLMProvider(enum.Enum):
     OLLAMA = "ollama"
 
 
-LLM_DEFAULT_MODEL_MAP = {
-    LLMProvider.GEMINI: "gemini-1.5-flash-latest",
-    LLMProvider.GROQ: "llama3-70b-8192",
-    LLMProvider.OLLAMA: "llama3:70b",
-}
-
-
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=BASE_DIR / ".env",
@@ -42,21 +35,10 @@ class Settings(BaseSettings):
     )
 
     LLM_PROVIDER: LLMProvider
-    LLM_MODEL: str | None = None
+    LLM_MODEL: str
 
     LLM_PROVIDER_API_KEY: str | None = None
     OLLAMA_HOST: HttpUrl = HttpUrl("http://localhost:11434")
-
-    @computed_field
-    @property
-    def resolved_llm_model(self) -> str:
-        if self.LLM_MODEL:
-            return self.LLM_MODEL
-
-        try:
-            return LLM_DEFAULT_MODEL_MAP[self.LLM_PROVIDER]
-        except KeyError:
-            raise ValueError(f"Unsupported LLM provider: {self.LLM_PROVIDER}")
 
     @model_validator(mode="after")
     def _validate_provider(self) -> Self:

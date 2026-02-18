@@ -14,7 +14,7 @@ class OllamaLLMModel(LLMModel):
     def __run_query(self, prompt: str, format: Literal["json"] | None) -> str:
         try:
             response = self.client.chat(
-                model=settings.resolved_llm_model,
+                model=settings.LLM_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 format=format,
             )

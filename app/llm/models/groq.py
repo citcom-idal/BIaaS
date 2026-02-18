@@ -25,7 +25,7 @@ class GroqLLMModel(LLMModel):
         try:
             chat_completion = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
-                model=settings.resolved_llm_model,
+                model=settings.LLM_MODEL,
                 temperature=temperature,
                 max_tokens=max_tokens,
                 response_format=response_format,
