@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+
+import faiss
 from pydantic import BaseModel
 
 
@@ -6,10 +9,15 @@ class DatasetMetadata(BaseModel):
     title: str
     description: str
 
-    def header(self) -> str:
-        return f"título: {self.title}; descripción: {self.description}"
-
 
 class DatasetSearchResult(BaseModel):
     metadata: DatasetMetadata
     similarity: float
+
+
+@dataclass(frozen=True)
+class DatasetIndexState:
+    index: faiss.Index
+    metadata: list[DatasetMetadata]
+    mtime_index: float
+    mtime_metadata: float

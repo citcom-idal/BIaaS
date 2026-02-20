@@ -1,19 +1,15 @@
-from typing import Any
-
-import numpy as np
-from bs4 import BeautifulSoup
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import DATASET_SIMILARITY_THRESHOLD
 from app.core.exceptions import DatasetNotFoundError, LLMModelError
 from app.llm.factory import get_llm_model
-from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
-from app.services.faiss_service import FaissService
+from app.schemas.dataset import DatasetSearchResult
+from app.services.faiss_index_service import FaissIndexService
 
 
 class DatasetService:
     def __init__(
-        self, sentence_transformer: SentenceTransformer, faiss_service: FaissService
+        self, sentence_transformer: SentenceTransformer, faiss_service: FaissIndexService
     ) -> None:
         self.sentence_transformer = sentence_transformer
         self.faiss_service = faiss_service
@@ -39,36 +35,3 @@ class DatasetService:
             return False
 
         return "sí" in raw_response.lower() or "si" in raw_response.lower()
-
-    def __process_dataset(self, dataset_info: dict[str, Any]):
-        dataset = dataset_info.get("dataset", {})
-        dataset_id = dataset.get("dataset_id", "")
-        meta = dataset.get("metas", {}).get("default", {})
-        title = meta.get("title", "Sin título")
-        description_html = meta.get("description", "")
-        description = (
-            BeautifulSoup(description_html, "html.parser").get_text().strip()
-            if description_html
-            else ""
-        )
-
-        return DatasetMetadata(id=dataset_id, title=title, description=description)
-
-    def generate_dataset_embeddings(self, datasets: Any):
-        texts_for_page: list[str] = []
-        embeddings: list[np.ndarray] = []
-        embeddings_metadata: list[DatasetMetadata] = []
-
-        for dataset_info in datasets:
-            dataset = self.__process_dataset(dataset_info)
-
-            texts_for_page.append(dataset.header())
-            embeddings_metadata.append(dataset)
-
-        if texts_for_page:
-            page_embeddings = self.sentence_transformer.encode(
-                texts_for_page, normalize_embeddings=True, show_progress_bar=False
-            )
-            embeddings.extend(page_embeddings)
-
-        return embeddings, embeddings_metadata

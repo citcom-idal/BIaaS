@@ -1,3 +1,4 @@
+import atexit
 import logging
 from typing import Any
 
@@ -22,7 +23,7 @@ from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
 from app.services.analysis_service import analyze_dataset
 from app.services.api_query_agent_service import APIQueryAgent
 from app.services.dataset_service import DatasetService
-from app.services.faiss_service import FaissService
+from app.services.faiss_index_service import FaissIndexService
 from app.services.insights_service import generate_insights
 from app.services.plot_service import plot_dataset
 from app.services.visual_planner_service import suggest_visualizations
@@ -38,17 +39,27 @@ def get_sentence_transformer_model(model_name: str) -> SentenceTransformer:
 
 
 @st.cache_resource
-def get_faiss_index_instance() -> FaissService:
-    instance = FaissService()
-    # Mover el mensaje de éxito/error a la función main para mejor control del flujo
-    return instance
+def get_faiss_index_service() -> FaissIndexService:
+    service = FaissIndexService()
+
+    service.ensure_index_loaded(timeout=60.0)
+    atexit.register(service.shutdown)
+
+    return service
+
+
+@st.cache_resource
+def get_dataset_service() -> DatasetService:
+    sentence_model = get_sentence_transformer_model(EMBEDDING_MODEL)
+    faiss_index_service = get_faiss_index_service()
+
+    return DatasetService(sentence_model, faiss_index_service)
 
 
 def build_and_save_index() -> None:
-    faiss_service = get_faiss_index_instance()
-    sentence_model_instance = get_sentence_transformer_model(EMBEDDING_MODEL)
+    faiss_service = get_faiss_index_service()
+    dataset_service = get_dataset_service()
     api_query_agent = APIQueryAgent()
-    dataset_service = DatasetService(sentence_model_instance, faiss_service)
 
     st.header(f"Construyendo Índice FAISS para: {EMBEDDING_MODEL}")
 
@@ -204,23 +215,13 @@ def main() -> None:
     if "run_initial_analysis" not in st.session_state:
         st.session_state.run_initial_analysis = False
 
-    faiss_index_global = get_faiss_index_instance()
-    sentence_model_global = get_sentence_transformer_model(EMBEDDING_MODEL)
-    dataset_service = DatasetService(sentence_model_global, faiss_index_global)
-
-    faiss_index_global.load_index()
+    faiss_index_service = get_faiss_index_service()
+    dataset_service = get_dataset_service()
 
     st.title("Data València Agent")
 
-    st.sidebar.header("Acciones del Índice")
-    if faiss_index_global.is_ready():
-        st.sidebar.success(f"Índice FAISS listo ({faiss_index_global.index.ntotal} vectores).")
-
-    if st.sidebar.button("Construir/actualizar Índice FAISS"):
-        build_and_save_index()
-
     if st.session_state.active_df is None:
-        display_initial_view(faiss_index_global, dataset_service)
+        display_initial_view(faiss_index_service, dataset_service)
     else:
         display_conversation_view()
 
@@ -230,18 +231,21 @@ def main() -> None:
 
 
 def display_initial_view(
-    faiss_service: FaissService,
-    dataset_service: DatasetService,
+    faiss_index_service: FaissIndexService, dataset_service: DatasetService
 ) -> None:
     st.markdown(
         "Bienvenido al asistente para explorar [Datos Abiertos del Ayuntamiento de Valencia](https://valencia.opendatasoft.com/pages/home/?flg=es-es)."
     )
 
-    if not faiss_service.is_ready():
+    if not faiss_index_service.files_exist():
         st.warning(
-            "El índice de búsqueda no está listo. Por favor, constrúyelo desde el menú de la izquierda para poder analizar consultas."
+            "El índice de búsqueda no está listo. Por favor, constrúyelo y recarga la página para poder analizar consultas."
         )
         return
+
+    st.success(
+        f"Índice FAISS listo con {faiss_index_service.get_total_vectors()} vectores. ¡Puedes empezar a hacer preguntas sobre los datasets de Valencia!"
+    )
 
     st.markdown("##### ¿No sabes qué preguntar? Prueba con esto:")
     examples = [
