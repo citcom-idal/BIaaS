@@ -2,14 +2,12 @@ import atexit
 import logging
 from typing import Any
 
-import numpy as np
 import pandas as pd
 import streamlit as st
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import (
     EMBEDDING_MODEL,
-    INDEX_FILE,
     settings,
 )
 from app.core.exceptions import (
@@ -19,9 +17,8 @@ from app.core.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
-from app.schemas.dataset import DatasetMetadata, DatasetSearchResult
+from app.schemas.dataset import DatasetSearchResult
 from app.services.analysis_service import analyze_dataset
-from app.services.api_query_agent_service import APIQueryAgent
 from app.services.dataset_service import DatasetService
 from app.services.faiss_index_service import FaissIndexService
 from app.services.insights_service import generate_insights
@@ -54,96 +51,6 @@ def get_dataset_service() -> DatasetService:
     faiss_index_service = get_faiss_index_service()
 
     return DatasetService(sentence_model, faiss_index_service)
-
-
-def build_and_save_index() -> None:
-    faiss_service = get_faiss_index_service()
-    dataset_service = get_dataset_service()
-    api_query_agent = APIQueryAgent()
-
-    st.header(f"Construyendo Índice FAISS para: {EMBEDDING_MODEL}")
-
-    dataset_embeddings: list[np.ndarray] = []
-    dataset_metadatas: list[DatasetMetadata] = []
-
-    limit = 100
-    start = 0
-    total_datasets = None
-
-    with st.spinner("Obteniendo catálogo de datasets de OpenData Valencia..."):
-        try:
-            total_datasets = api_query_agent.fetch_datasets_count()
-
-            if total_datasets == 0:
-                st.warning("No se encontraron datasets en el catálogo.")
-                return
-
-            st.info(
-                f"Se encontraron {total_datasets} datasets. Procediendo a generar embeddings..."
-            )
-        except ExternalAPIError as e:
-            st.error(f"Error crítico al conectar con la API de OpenData Valencia: {e}")
-            return
-
-    progress_bar = st.progress(0.0, "Iniciando proceso...")
-    status_area = st.empty()
-
-    while start < total_datasets:
-        try:
-            status_area.write(f"Obteniendo página de datasets... offset={start}, limit={limit}")
-            response = api_query_agent.fetch_datasets_page(limit=limit, offset=start)
-
-            if response.status_code != 200:
-                status_area.warning(
-                    f"Respuesta de la API para offset={start}: Código de estado {response.status_code}. Saltando página."
-                )
-                start += limit
-                continue
-
-            data = response.json()
-            datasets_page = data.get("datasets", [])
-
-            if not datasets_page:
-                status_area.warning(
-                    f"La página con offset={start} no devolvió datasets. Finalizando bucle."
-                )
-                break
-
-            embeddings, metadata = dataset_service.generate_dataset_embeddings(datasets_page)
-
-            dataset_embeddings.extend(embeddings)
-            dataset_metadatas.extend(metadata)
-
-            start += len(datasets_page)
-            progress_bar.progress(
-                min(start / total_datasets, 1.0),
-                text=f"Procesados {start}/{total_datasets} datasets",
-            )
-
-        except ExternalAPIError as e:
-            st.error(str(e))
-            break
-
-    if not dataset_embeddings:
-        st.error(
-            "No se pudieron generar embeddings. El proceso ha fallado. Revisa los mensajes de estado de la API."
-        )
-        return
-
-    progress_bar.empty()
-    status_area.empty()
-
-    st.info(f"Construyendo y guardando el índice FAISS en {INDEX_FILE}...")
-
-    with st.spinner(f"Construyendo y guardando el índice FAISS en {INDEX_FILE}..."):
-        saved_vector_count = faiss_service.process_and_save_index(
-            dataset_embeddings, dataset_metadatas
-        )
-
-    st.success(f"¡Índice FAISS con {saved_vector_count} vectores construido y guardado con éxito!")
-    st.balloons()
-    st.info("La página se recargará para usar el nuevo índice.")
-    st.rerun()
 
 
 def run_visualization_pipeline(
@@ -268,7 +175,6 @@ def display_initial_view(
 
     if st.button("Analizar Consulta", type="primary"):
         if user_query_input:
-            api_agent = APIQueryAgent()
             with st.spinner("Buscando y validando datasets..."):
                 try:
                     search_results = dataset_service.search_dataset(user_query_input, top_k=5)
@@ -308,7 +214,7 @@ def display_initial_view(
 
             with st.spinner(f"Descargando y analizando '{dataset_title}'..."):
                 try:
-                    df = api_agent.load_dataset(dataset_id)
+                    df = dataset_service.load_dataset(dataset_id)
                 except ExternalAPIError as e:
                     st.error(str(e))
                     return

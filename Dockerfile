@@ -36,6 +36,7 @@ RUN mkdir -p /home/biaas/code/data && chown biaas:biaas /home/biaas/code/data
 COPY --from=builder --chown=biaas:biaas /home/biaas/code/.venv ./.venv
 COPY --chown=biaas:biaas app/ ./app/
 COPY --chown=biaas:biaas ./streamlit_app.py ./
+COPY --chown=biaas:biaas ./build_index.py ./
 
 ENV PATH="/home/biaas/code/.venv/bin:$PATH"
 
