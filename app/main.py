@@ -4,13 +4,12 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
-from sentence_transformers import SentenceTransformer
 
 from app.core.config import (
     EMBEDDING_MODEL,
-    LLMProvider,
     settings,
 )
+from app.core.container import Container
 from app.core.exceptions import (
     DatasetNotFoundError,
     ExternalAPIError,
@@ -19,7 +18,6 @@ from app.core.exceptions import (
     PlotGenerationError,
 )
 from app.llm import LLMModel
-from app.llm.models import GeminiLLMModel, GroqLLMModel, OllamaLLMModel
 from app.schemas.dataset import DatasetSearchResult
 from app.services.analysis_service import analyze_dataset
 from app.services.dataset_service import DatasetService
@@ -34,42 +32,14 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 
 @st.cache_resource
-def get_sentence_transformer_model(model_name: str) -> SentenceTransformer:
-    return SentenceTransformer(model_name, device="cpu")
+def get_container() -> Container:
+    container = Container()
 
+    faiss_index_service = container.faiss_index_service()
+    faiss_index_service.ensure_index_loaded(timeout=60.0)
+    atexit.register(faiss_index_service.shutdown)
 
-@st.cache_resource
-def get_faiss_index_service() -> FaissIndexService:
-    service = FaissIndexService()
-
-    service.ensure_index_loaded(timeout=60.0)
-    atexit.register(service.shutdown)
-
-    return service
-
-
-@st.cache_resource
-def get_dataset_service() -> DatasetService:
-    sentence_model = get_sentence_transformer_model(EMBEDDING_MODEL)
-    faiss_index_service = get_faiss_index_service()
-    llm_model = get_llm_model()
-
-    return DatasetService(
-        sentence_transformer=sentence_model,
-        faiss_service=faiss_index_service,
-        llm_model=llm_model,
-    )
-
-
-@st.cache_resource
-def get_llm_model() -> LLMModel:
-    registry: dict[LLMProvider, type[LLMModel]] = {
-        LLMProvider.GEMINI: GeminiLLMModel,
-        LLMProvider.GROQ: GroqLLMModel,
-        LLMProvider.OLLAMA: OllamaLLMModel,
-    }
-
-    return registry[settings.LLM_PROVIDER]()
+    return container
 
 
 def run_visualization_pipeline(
@@ -151,9 +121,11 @@ def main() -> None:
     if "run_initial_analysis" not in st.session_state:
         st.session_state.run_initial_analysis = False
 
-    faiss_index_service = get_faiss_index_service()
-    dataset_service = get_dataset_service()
-    llm_model = get_llm_model()
+    container = get_container()
+
+    faiss_index_service = container.faiss_index_service()
+    dataset_service = container.dataset_service()
+    llm_model = container.llm_model_selector()
 
     st.title("Data València Agent")
 

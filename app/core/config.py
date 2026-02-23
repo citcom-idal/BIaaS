@@ -2,7 +2,7 @@ import enum
 from pathlib import Path
 from typing import Self
 
-from pydantic import HttpUrl, model_validator
+from pydantic import Field, HttpUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -20,7 +20,7 @@ EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
 DATASET_SIMILARITY_THRESHOLD = 0.45
 
 
-class LLMProvider(enum.Enum):
+class LLMProvider(enum.StrEnum):
     GEMINI = "gemini"
     GROQ = "groq"
     OLLAMA = "ollama"
@@ -34,8 +34,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    LLM_PROVIDER: LLMProvider
-    LLM_MODEL: str
+    LLM_PROVIDER: LLMProvider = Field(default=...)
+    LLM_MODEL: str = Field(default=...)
 
     LLM_PROVIDER_API_KEY: str | None = None
     OLLAMA_HOST: HttpUrl = HttpUrl("http://localhost:11434")

@@ -126,7 +126,7 @@ class FaissIndexService:
             return []
 
         query_embedding_norm = (query_embedding / norm).astype(np.float32).reshape(1, -1)
-        distances, indices = state.index.search(query_embedding_norm, top_k)
+        distances, indices = state.index.search(query_embedding_norm, top_k)  # type: ignore
 
         results: list[DatasetSearchResult] = []
         index_metadata = state.metadata
@@ -151,7 +151,7 @@ class FaissIndexService:
         d = embeddings_np.shape[1]
 
         index = faiss.IndexFlatL2(d)
-        index.add(embeddings_np)
+        index.add(embeddings_np)  # type: ignore
 
         tmp_index_file = INDEX_FILE.with_suffix(".tmp")
         tmp_metadata_file = METADATA_FILE.with_suffix(".tmp")

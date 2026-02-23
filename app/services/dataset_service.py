@@ -16,11 +16,11 @@ class DatasetService:
     def __init__(
         self,
         sentence_transformer: SentenceTransformer,
-        faiss_service: FaissIndexService,
+        faiss_index_service: FaissIndexService,
         llm_model: LLMModel,
     ) -> None:
         self.sentence_transformer = sentence_transformer
-        self.faiss_service = faiss_service
+        self.faiss_index_service = faiss_index_service
         self.llm_model = llm_model
 
     def load_dataset(self, dataset_id: str) -> pd.DataFrame:
@@ -45,7 +45,7 @@ class DatasetService:
         )
 
         try:
-            return self.faiss_service.search(query_embedding, top_k=top_k)
+            return self.faiss_index_service.search(query_embedding, top_k=top_k)
         except Exception as e:
             raise DatasetNotFoundError(f"Error FAISS search: {e}")
 
