@@ -3,19 +3,13 @@ import io
 import httpx
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from app.core.config import CATALOG_LIST_URL, DATASET_SIMILARITY_THRESHOLD
-from app.core.exceptions import DatasetNotFoundError, LLMModelError
+from app.core.exceptions import DatasetNotFoundError, ExternalAPIError, LLMModelError
 from app.llm import LLMModel
 from app.schemas.dataset import DatasetSearchResult
 from app.services.faiss_index_service import FaissIndexService
-from app.utils import fetch_url
+from app.utils import fetch_with_retry
 
 
 class DatasetService:
@@ -29,20 +23,17 @@ class DatasetService:
         self.faiss_service = faiss_service
         self.llm_model = llm_model
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(min=2, max=10),
-        retry=retry_if_exception_type(
-            (httpx.RequestError, httpx.HTTPStatusError, httpx.TimeoutException)
-        ),
-    )
     def load_dataset(self, dataset_id: str) -> pd.DataFrame:
         endpoint = f"{CATALOG_LIST_URL}/{dataset_id}/exports/csv"
-        params = httpx.QueryParams(delimiter=";")
+        delimiter = ";"
+        params = httpx.QueryParams(delimiter=delimiter)
 
-        response = fetch_url(endpoint, params=params, timeout=httpx.Timeout(60.0))
+        try:
+            response = fetch_with_retry(endpoint, params=params, timeout=httpx.Timeout(60.0))
+        except httpx.RequestError as e:
+            raise ExternalAPIError(f"API Error: {e}") from e
 
-        df = pd.read_csv(io.StringIO(response.text), delimiter=";")
+        df = pd.read_csv(io.BytesIO(response.content), delimiter=delimiter)
 
         df.columns = df.columns.str.strip().str.replace(" ", "_").str.lower()
 

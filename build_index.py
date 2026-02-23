@@ -17,7 +17,7 @@ from app.core.config import (
 from app.core.exceptions import ExternalAPIError
 from app.schemas.dataset import DatasetMetadata
 from app.services.faiss_index_service import FaissIndexService
-from app.utils import fetch_url
+from app.utils import fetch
 
 
 def print_info(message: str) -> None:
@@ -81,11 +81,10 @@ def fetch_total_datasets() -> int:
         progress.add_task(
             description="Obteniendo catálogo de datasets de OpenData Valencia...", total=None
         )
+        params = httpx.QueryParams(limit=1, offset=0)
 
         try:
-            response = fetch_url(
-                CATALOG_LIST_URL, params={"limit": 1, "offset": 0}, timeout=httpx.Timeout(20.0)
-            )
+            response = fetch(CATALOG_LIST_URL, params=params, timeout=httpx.Timeout(20.0))
         except ExternalAPIError as e:
             progress.stop()
             print_error(f"Error crítico al conectar con la API de OpenData Valencia: {e}")
@@ -111,12 +110,9 @@ def fetch_datasets_page(
         )
 
         while start < total_datasets:
+            params = httpx.QueryParams(limit=limit, offset=start)
             try:
-                response = fetch_url(
-                    CATALOG_LIST_URL,
-                    params={"limit": limit, "offset": start},
-                    timeout=httpx.Timeout(30.0),
-                )
+                response = fetch(CATALOG_LIST_URL, params=params, timeout=httpx.Timeout(30.0))
             except ExternalAPIError as e:
                 progress.stop()
                 print_error(f"Error al obtener página de datasets con offset={start}: {e}")
