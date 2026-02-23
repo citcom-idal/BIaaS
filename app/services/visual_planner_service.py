@@ -7,11 +7,11 @@ from app.core.exceptions import (
     PlannerError,
     PlannerJSONError,
 )
-from app.llm import get_llm_model
+from app.llm import LLMModel
 
 
 def suggest_visualizations(
-    df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
+    llm_model: LLMModel, df_sample: pd.DataFrame, query: str, analysis: dict[str, Any]
 ) -> list[dict[str, Any]]:
     try:
         df_head_str = df_sample.head(3).to_markdown(index=False)
@@ -29,10 +29,10 @@ Consulta del Usuario: "{query}"
 Dataset Resumido (primeras filas de {df_sample.shape[0]}):
 {df_head_str}
 Análisis de Columnas (USA ESTOS NOMBRES EXACTOS):
-- Numéricas: {analysis['numeric']}
-- Categóricas: {analysis['categorical']}
-- Temporales: {analysis['temporal']}
-- Geoespaciales: {analysis['geospatial']}
+- Numéricas: {analysis["numeric"]}
+- Categóricas: {analysis["categorical"]}
+- Temporales: {analysis["temporal"]}
+- Geoespaciales: {analysis["geospatial"]}
 {value_counts_summary if len(analysis.get("value_counts", {})) > 0 else ""}
 Instrucciones:
 1.  Prioriza la consulta del usuario.
@@ -48,7 +48,6 @@ Instrucciones:
 Genera el JSON:"""
 
     try:
-        llm_model = get_llm_model()
         raw_content, visualizations = llm_model.get_json_response(prompt)
 
         if isinstance(visualizations, dict):

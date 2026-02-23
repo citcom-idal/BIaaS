@@ -8,6 +8,7 @@ from sentence_transformers import SentenceTransformer
 
 from app.core.config import (
     EMBEDDING_MODEL,
+    LLMProvider,
     settings,
 )
 from app.core.exceptions import (
@@ -17,6 +18,8 @@ from app.core.exceptions import (
     PlannerJSONError,
     PlotGenerationError,
 )
+from app.llm import LLMModel
+from app.llm.models import GeminiLLMModel, GroqLLMModel, OllamaLLMModel
 from app.schemas.dataset import DatasetSearchResult
 from app.services.analysis_service import analyze_dataset
 from app.services.dataset_service import DatasetService
@@ -49,12 +52,32 @@ def get_faiss_index_service() -> FaissIndexService:
 def get_dataset_service() -> DatasetService:
     sentence_model = get_sentence_transformer_model(EMBEDDING_MODEL)
     faiss_index_service = get_faiss_index_service()
+    llm_model = get_llm_model()
 
-    return DatasetService(sentence_model, faiss_index_service)
+    return DatasetService(
+        sentence_transformer=sentence_model,
+        faiss_service=faiss_index_service,
+        llm_model=llm_model,
+    )
+
+
+@st.cache_resource
+def get_llm_model() -> LLMModel:
+    registry: dict[LLMProvider, type[LLMModel]] = {
+        LLMProvider.GEMINI: GeminiLLMModel,
+        LLMProvider.GROQ: GroqLLMModel,
+        LLMProvider.OLLAMA: OllamaLLMModel,
+    }
+
+    return registry[settings.LLM_PROVIDER]()
 
 
 def run_visualization_pipeline(
-    user_query: str, df: pd.DataFrame, analysis: dict[str, Any], dataset_title: str
+    llm_model: LLMModel,
+    user_query: str,
+    df: pd.DataFrame,
+    analysis: dict[str, Any],
+    dataset_title: str,
 ) -> None:
     active_llm_provider = settings.LLM_PROVIDER.value
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
@@ -62,7 +85,12 @@ def run_visualization_pipeline(
         df_sample_viz = df.head(20) if len(df) > 20 else df.copy()
         viz_configs_suggested: list[dict[str, Any]] = []
         try:
-            viz_configs_suggested = suggest_visualizations(df_sample_viz, user_query, analysis)
+            viz_configs_suggested = suggest_visualizations(
+                llm_model=llm_model,
+                df_sample=df_sample_viz,
+                query=user_query,
+                analysis=analysis,
+            )
         except PlannerError as e:
             st.error(str(e))
         except PlannerJSONError as e:
@@ -77,8 +105,8 @@ def run_visualization_pipeline(
     if viz_configs_suggested:
         st.subheader("Visualizaciones sugeridas")
         for idx, config in enumerate(viz_configs_suggested):
-            title_viz = config.get("titulo_de_la_visualizacion", f"Visualización {idx+1}")
-            st.markdown(f"**{idx+1}. {title_viz}**")
+            title_viz = config.get("titulo_de_la_visualizacion", f"Visualización {idx + 1}")
+            st.markdown(f"**{idx + 1}. {title_viz}**")
             try:
                 fig = plot_dataset(df, config)
                 st.plotly_chart(fig, use_container_width=True)
@@ -97,10 +125,11 @@ def run_visualization_pipeline(
         st.subheader("💡 Insights del Analista Virtual")
         df_sample_ins = df.head(5) if len(df) > 5 else df.copy()
         insights_text = generate_insights(
-            user_query,
-            valid_viz_configs_generated,
-            df_sample_ins,
-            dataset_title,
+            llm_model=llm_model,
+            query=user_query,
+            viz_configs_generated=valid_viz_configs_generated,
+            df_sample=df_sample_ins,
+            dataset_title=dataset_title,
         )
         st.markdown(insights_text)
 
@@ -124,13 +153,14 @@ def main() -> None:
 
     faiss_index_service = get_faiss_index_service()
     dataset_service = get_dataset_service()
+    llm_model = get_llm_model()
 
     st.title("Data València Agent")
 
     if st.session_state.active_df is None:
         display_initial_view(faiss_index_service, dataset_service)
     else:
-        display_conversation_view()
+        display_conversation_view(llm_model)
 
     st.markdown("---")
 
@@ -231,7 +261,7 @@ def display_initial_view(
             st.warning("Por favor, introduce una consulta.")
 
 
-def display_conversation_view() -> None:
+def display_conversation_view(llm_model: LLMModel) -> None:
     st.success(f"Dataset activo: **{st.session_state.active_dataset_title}**")
     csv_data = st.session_state.active_df.to_csv(index=False, sep=";").encode("utf-8")
     st.download_button(
@@ -242,6 +272,7 @@ def display_conversation_view() -> None:
 
     if st.session_state.run_initial_analysis:
         run_visualization_pipeline(
+            llm_model,
             st.session_state.last_query,
             st.session_state.active_df,
             st.session_state.active_analysis,
@@ -258,6 +289,7 @@ def display_conversation_view() -> None:
     if col_run.button("Analizar Seguimiento", type="primary"):
         if follow_up_query:
             run_visualization_pipeline(
+                llm_model,
                 follow_up_query,
                 st.session_state.active_df,
                 st.session_state.active_analysis,

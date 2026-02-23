@@ -3,10 +3,11 @@ from typing import Any
 import pandas as pd
 
 from app.core.exceptions import LLMModelError
-from app.llm import get_llm_model
+from app.llm import LLMModel
 
 
 def generate_insights(
+    llm_model: LLMModel,
     query: str,
     viz_configs_generated: list[dict[str, Any]],
     df_sample: pd.DataFrame,
@@ -30,7 +31,6 @@ Tarea: Redacta un resumen breve (1-2 párrafos, máx 120 palabras) con los insig
 Genera el resumen:"""
 
     try:
-        llm_model = get_llm_model()
         return llm_model.get_raw_response(prompt)
     except LLMModelError:
         return "No se generaron insights"
