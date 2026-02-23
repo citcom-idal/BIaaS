@@ -36,7 +36,7 @@ def get_container() -> Container:
     container = Container()
 
     faiss_index_service = container.faiss_index_service()
-    faiss_index_service.ensure_index_loaded(timeout=60.0)
+
     atexit.register(faiss_index_service.shutdown)
 
     return container
@@ -126,6 +126,8 @@ def main() -> None:
     faiss_index_service = container.faiss_index_service()
     dataset_service = container.dataset_service()
     llm_model = container.llm_model_selector()
+
+    faiss_index_service.ensure_index_loaded(timeout=60.0)
 
     st.title("Data València Agent")
 
