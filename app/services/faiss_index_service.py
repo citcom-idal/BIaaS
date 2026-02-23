@@ -18,10 +18,10 @@ from app.schemas.dataset import (
 
 
 class FaissIndexService:
-    def __init__(self):
+    def __init__(self) -> None:
         self.__state: DatasetIndexState | None = None
         self.__lock = threading.RLock()
-        self.__load_future: Future | None = None
+        self.__load_future: Future[None] | None = None
         self.__executor = ThreadPoolExecutor(max_workers=1)
 
     def files_exist(self) -> bool:
@@ -112,7 +112,7 @@ class FaissIndexService:
             return 0
 
         state = self.get_faiss_index_state()
-        return state.index.ntotal
+        return state.index.ntotal  # type: ignore
 
     def search(self, query_embedding: np.ndarray, top_k: int = 1) -> list[DatasetSearchResult]:
         try:
@@ -126,7 +126,9 @@ class FaissIndexService:
             return []
 
         query_embedding_norm = (query_embedding / norm).astype(np.float32).reshape(1, -1)
-        distances, indices = state.index.search(query_embedding_norm, top_k)  # type: ignore
+        distances, indices = state.index.search(
+            query_embedding_norm, top_k
+        )  # pyright: ignore[reportCallIssue]
 
         results: list[DatasetSearchResult] = []
         index_metadata = state.metadata
@@ -151,7 +153,7 @@ class FaissIndexService:
         d = embeddings_np.shape[1]
 
         index = faiss.IndexFlatL2(d)
-        index.add(embeddings_np)  # type: ignore
+        index.add(embeddings_np)  # pyright: ignore[reportCallIssue]
 
         tmp_index_file = INDEX_FILE.with_suffix(".tmp")
         tmp_metadata_file = METADATA_FILE.with_suffix(".tmp")
@@ -169,4 +171,4 @@ class FaissIndexService:
         tmp_index_file.replace(INDEX_FILE)
         tmp_metadata_file.replace(METADATA_FILE)
 
-        return index.ntotal
+        return index.ntotal  # type: ignore

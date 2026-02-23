@@ -20,7 +20,13 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["black==26.1.0", "ruff==0.15.2"]
+dev = [
+    "black==26.1.0",
+    "mypy==1.19.1",
+    "pandas-stubs==3.0.0.260204",
+    "plotly-stubs==0.1.2",
+    "ruff==0.15.2",
+]
 
 [tool.uv.sources]
 torch = [{ index = "pytorch-cpu" }]
@@ -34,6 +40,15 @@ explicit = true
 [tool.black]
 line-length = 100
 target-version = ["py313"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = "pydantic.mypy"
+
+[[tool.mypy.overrides]]
+module = ["faiss.*"]
+ignore_missing_imports = true
 
 [tool.ruff]
 target-version = "py313"

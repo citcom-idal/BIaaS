@@ -12,7 +12,7 @@ from app.llm.models.base import LLMModel
 
 
 class GroqLLMModel(LLMModel):
-    def __init__(self):
+    def __init__(self) -> None:
         self.client = Groq(api_key=settings.LLM_PROVIDER_API_KEY)
 
     def __run_query(

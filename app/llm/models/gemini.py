@@ -15,7 +15,7 @@ from app.llm.models.base import LLMModel
 
 
 class GeminiLLMModel(LLMModel):
-    def __init__(self):
+    def __init__(self) -> None:
         self.safety_settings = [
             SafetySetting(
                 category=HarmCategory.HARM_CATEGORY_HARASSMENT,

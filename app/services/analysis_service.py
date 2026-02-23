@@ -5,7 +5,7 @@ import pandas as pd
 
 
 def analyze_dataset(df: pd.DataFrame) -> dict[str, Any]:
-    analysis = {
+    analysis: dict[str, Any] = {
         "numeric": [],
         "categorical": [],
         "temporal": [],
