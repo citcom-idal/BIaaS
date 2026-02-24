@@ -94,7 +94,53 @@ Para usar Google Gemini o Groq, necesitas obtener tus claves API de cada servici
 
 Para configurar las variables de entorno, copia el archivo `.env.example` a `.env` y agrega los valores que necesites.
 
-### 5. Ejecutar la aplicación
+#### 4.1 Configuración de Ollama (sólo si usas Ollama)
+
+Si quieres usar Ollama, primero necesitas instalarlo y configurar tu modelo localmente. Puedes seguir la guía oficial de [Ollama](https://ollama.com/docs/installation) para instalarlo. Luego, debes descargar el modelo `codestral` con el siguiente comando:
+
+```bash
+ollama pull codestral
+```
+
+Después, en tu archivo `.env`, configura la URL de tu instancia de Ollama (si es diferente a la predeterminada) y el modelo que quieres usar:
+
+```env
+LLM_PROVIDER=ollama
+OLLAMA_URL=http://localhost:11434
+OLLAMA_MODEL=codestral
+```
+
+### 5. Construir el Índice FAISS (Solo la primera vez)
+
+Para que la búsqueda funcione, necesitas crear el índice vectorial localmente. Para ello está el script `build_index.py`, que se encargará de descargar la información de los datasets, generar los embeddings y construir el índice FAISS, que se guardará localmente en los archivos `faiss_metadata.json` y `faiss_opendata_valencia.idx` en el directorio `data/`.
+
+Dado que el índice se construye a partir de la información de datasets y es un contenido relativamente cambiante, no se almacena el índice en el repositorio, por ello el directorio `data/` está incluido en el `.gitignore`. Antes de ejecutar el script, debes crear el directorio `data/` en la raíz del proyecto:
+
+```bash
+mkdir data
+```
+
+Puedes ejecutar el script con el siguiente comando:
+
+```bash
+python build_index.py
+```
+
+#### 💡 Uso
+
+Escribe una consulta en lenguaje natural en el campo de texto principal (ej: "¿Dónde hay aparcamientos para bicis?").
+Haz clic en "Analizar Consulta".
+El agente buscará el dataset más relevante, lo analizará y te presentará visualizaciones e insights.
+Puedes realizar preguntas de seguimiento sobre el dataset activo.
+
+#### 📈 Posibles mejoras futuras
+
+Implementar un sistema de caché más avanzado para los resultados de la API.
+Permitir al usuario seleccionar manualmente un dataset si la búsqueda semántica no es precisa.
+Añadir soporte para más tipos de visualizaciones.
+Mejorar la gestión de memoria para datasets muy grandes.
+
+### 6. Ejecutar la aplicación
 
 ¡Ya está todo listo! Inicia la aplicación Streamlit con este comando:
 
@@ -104,24 +150,11 @@ streamlit run
 
 La aplicación se abrirá automáticamente en una nueva pestaña de tu navegador.
 
-### 6. Construir el Índice FAISS (Solo la primera vez)
+## Despliegue
 
-Para que la búsqueda funcione, necesitas crear el índice vectorial localmente.
-Cuando la aplicación se inicie, verás un menú en la barra lateral izquierda.
-Haz clic en el botón "Construir/actualizar Índice FAISS".
-El proceso comenzará y puede tardar varios minutos. Descargará la información de más de 280 datasets y generará sus embeddings.
-Una vez que veas el mensaje de éxito y los globos, el índice estará creado y la aplicación estará 100% funcional.
-💡 Uso
-Escribe una consulta en lenguaje natural en el campo de texto principal (ej: "¿Dónde hay aparcamientos para bicis?").
-Haz clic en "Analizar Consulta".
-El agente buscará el dataset más relevante, lo analizará y te presentará visualizaciones e insights.
-Puedes realizar preguntas de seguimiento sobre el dataset activo.
+Para desplegar la aplicación se proporciona un `Dockerfile` que puedes usar para crear una imagen Docker de la aplicación. Está optimizado para producción, utilizando una imagen base de Python ligera y configurando el entorno de manera eficiente.
 
-📈 Posibles mejoras futuras
-Implementar un sistema de caché más avanzado para los resultados de la API.
-Permitir al usuario seleccionar manualmente un dataset si la búsqueda semántica no es precisa.
-Añadir soporte para más tipos de visualizaciones.
-Mejorar la gestión de memoria para datasets muy grandes.
+Una vez que tengas tu imagen Docker, puedes desplegarla en cualquier plataforma que soporte contenedores. Cuando despliegues la aplicación, asegúrate de configurar las variables de entorno necesarias para el proveedor de LLM que hayas elegido y ejecutar el script `build_index.py` para generar el índice FAISS antes de iniciar la aplicación.
 
 ## Agradecimientos
 
