@@ -127,3 +127,4 @@ Mejorar la gestión de memoria para datasets muy grandes.
 
 - A OpenData València por proporcionar los datos.
 - A las comunidades de Streamlit, Hugging Face y FAISS.
+- A @vicentcorrecher, creador de [BIaaS](https://github.com/vicentcorrecher/BIaaS), cuyo trabajo fue el punto de partida de esta evolución del proyecto.
