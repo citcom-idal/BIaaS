@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
+
 from typing import Any
 
 import httpx
 import numpy as np
 from bs4 import BeautifulSoup
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from sentence_transformers import SentenceTransformer
 
 from app.core.config import (
     CATALOG_LIST_URL,
+    DATA_DIR,
     EMBEDDING_MODEL,
     INDEX_FILE,
 )
@@ -18,6 +21,29 @@ from app.core.exceptions import ExternalAPIError
 from app.schemas.dataset import DatasetMetadata
 from app.services.faiss_index_service import FaissIndexService
 from app.utils import fetch
+
+
+class BaseResponse(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+
+
+class DatasetInfoResponse(BaseResponse):
+    dataset_id: str = ""
+    title: str = "Sin título"
+    description: str = ""
+
+    @model_validator(mode="before")
+    @classmethod
+    def flatten_dataset(cls, data: dict[str, dict[str, Any]]) -> dict[str, Any]:
+        if isinstance(data, dict) and "dataset" in data:
+            return data["dataset"]
+
+        return data
+
+
+class DatasetResponse(BaseResponse):
+    total_count: int = 0
+    datasets: list[DatasetInfoResponse] = Field(default_factory=list)
 
 
 def print_info(message: str) -> None:
@@ -37,18 +63,16 @@ def print_error(message: str) -> None:
 
 
 def generate_dataset_embeddings(
-    datasets: Any, sentence_transformer: SentenceTransformer
+    datasets: list[DatasetInfoResponse], sentence_transformer: SentenceTransformer
 ) -> tuple[list[np.ndarray], list[DatasetMetadata]]:
     texts_for_page: list[str] = []
     embeddings: list[np.ndarray] = []
     embeddings_metadata: list[DatasetMetadata] = []
 
-    for dataset_info in datasets:
-        dataset = dataset_info.get("dataset", {})
-        dataset_id = dataset.get("dataset_id", "")
-        meta = dataset.get("metas", {}).get("default", {})
-        title = meta.get("title", "Sin título")
-        description_html = meta.get("description", "")
+    for dataset in datasets:
+        dataset_id = dataset.dataset_id
+        title = dataset.title
+        description_html = dataset.description
         description = (
             BeautifulSoup(description_html, "html.parser").get_text().strip()
             if description_html
@@ -81,7 +105,7 @@ def fetch_total_datasets() -> int:
         progress.add_task(
             description="Obteniendo catálogo de datasets de OpenData Valencia...", total=None
         )
-        params = httpx.QueryParams(limit=1, offset=0)
+        params = httpx.QueryParams(rows=0)
 
         try:
             response = fetch(CATALOG_LIST_URL, params=params, timeout=httpx.Timeout(20.0))
@@ -90,9 +114,9 @@ def fetch_total_datasets() -> int:
             print_error(f"Error crítico al conectar con la API de OpenData Valencia: {e}")
             return 0
 
-        data = response.json()
+        data = DatasetResponse.model_validate(response.json())
 
-        return data.get("total_count", 0)
+        return data.total_count
 
 
 def fetch_datasets_page(
@@ -110,7 +134,9 @@ def fetch_datasets_page(
         )
 
         while start < total_datasets:
-            params = httpx.QueryParams(limit=limit, offset=start)
+            params = httpx.QueryParams(
+                limit=limit, offset=start, select="dataset_id,title,description"
+            )
             try:
                 response = fetch(CATALOG_LIST_URL, params=params, timeout=httpx.Timeout(30.0))
             except ExternalAPIError as e:
@@ -125,8 +151,8 @@ def fetch_datasets_page(
                 start += limit
                 continue
 
-            data = response.json()
-            datasets_page = data.get("datasets", [])
+            data = DatasetResponse.model_validate(response.json())
+            datasets_page = data.datasets
 
             if not datasets_page:
                 progress.stop()
@@ -154,6 +180,11 @@ def fetch_datasets_page(
 
 
 def main() -> None:
+    if not DATA_DIR.exists():
+        raise FileNotFoundError(
+            f"El directorio de datos {DATA_DIR} no existe. Asegúrate de que el proyecto esté configurado correctamente."
+        )
+
     sentence_transformer = SentenceTransformer(EMBEDDING_MODEL, device="cpu")
 
     print_info(f"Construyendo Índice FAISS para: {EMBEDDING_MODEL}")
