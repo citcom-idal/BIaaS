@@ -52,6 +52,6 @@ USER biaas
 EXPOSE 8501
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8501${ROOT_PATH}/healthz || exit 1
+    CMD python -c "import httpx; r=httpx.get('http://localhost:8501${ROOT_PATH}/healthz'); exit(0 if r.status_code == 200 else 1)"
 
 CMD [ "sh", "-c", "exec streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.baseUrlPath=$ROOT_PATH" ]
