@@ -4,7 +4,7 @@ import httpx
 import pandas as pd
 from sentence_transformers import SentenceTransformer
 
-from app.core.config import CATALOG_LIST_URL, DATASET_SIMILARITY_THRESHOLD
+from app.core.constants import CATALOG_LIST_URL, DATASET_SIMILARITY_THRESHOLD
 from app.core.exceptions import DatasetNotFoundError, ExternalAPIError, LLMModelError
 from app.llm import LLMModel
 from app.schemas.dataset import DatasetSearchResult

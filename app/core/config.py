@@ -1,23 +1,11 @@
 import enum
-from pathlib import Path
+from functools import lru_cache
 from typing import Self
 
 from pydantic import Field, HttpUrl, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-BASE_DIR = Path(__file__).resolve().parent.parent.parent
-
-DATA_DIR = BASE_DIR / "data"
-
-INDEX_FILE = DATA_DIR / "faiss_opendata_valencia.idx"
-METADATA_FILE = DATA_DIR / "faiss_metadata.json"
-
-BASE_URL = "https://valencia.opendatasoft.com/api/explore/v2.1/"
-CATALOG_LIST_URL = "https://valencia.opendatasoft.com/api/v2/catalog/datasets"
-
-EMBEDDING_MODEL = "paraphrase-MiniLM-L6-v2"
-
-DATASET_SIMILARITY_THRESHOLD = 0.45
+from app.core.constants import BASE_DIR
 
 
 class LLMProvider(enum.StrEnum):
@@ -33,6 +21,8 @@ class Settings(BaseSettings):
         env_ignore_empty=True,
         extra="ignore",
     )
+
+    ENVIRONMENT: str = "development"
 
     LLM_PROVIDER: LLMProvider = Field(default=...)
     LLM_MODEL: str = Field(default=...)
@@ -51,4 +41,6 @@ class Settings(BaseSettings):
         return self
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

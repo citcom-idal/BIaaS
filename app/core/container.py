@@ -1,10 +1,13 @@
 from dependency_injector import containers, providers
 from sentence_transformers import SentenceTransformer
 
-from app.core.config import EMBEDDING_MODEL, settings
+from app.core.config import get_settings
+from app.core.constants import EMBEDDING_MODEL
 from app.llm.models import GeminiLLMModel, GroqLLMModel, OllamaLLMModel
 from app.services.dataset_service import DatasetService
 from app.services.faiss_index_service import FaissIndexService
+
+settings = get_settings()
 
 
 class Container(containers.DeclarativeContainer):
@@ -21,6 +24,7 @@ class Container(containers.DeclarativeContainer):
         SentenceTransformer,
         model_name_or_path=EMBEDDING_MODEL,
         device="cpu",
+        local_files_only=True if settings.ENVIRONMENT == "production" else False,
     )
 
     faiss_index_service = providers.Singleton(FaissIndexService)

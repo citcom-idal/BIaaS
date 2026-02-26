@@ -6,12 +6,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     ENVIRONMENT=production
 
-RUN apt-get update && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-RUN groupadd -r -g 1001 biaas && \
-    useradd -r -u 1001 -g biaas biaas
+RUN groupadd -r -g 1001 biaas; \
+    useradd -r -g biaas -u 1001 --home-dir=/opt/biaas --shell=/bin/bash biaas; \
+    install --verbose --directory --owner biaas --group biaas --mode 755 /opt/biaas
 
 FROM base AS builder
 
@@ -28,30 +25,32 @@ RUN --mount=from=uv,source=/uv,target=/bin/uv \
 
 FROM base AS runtime
 
-ENV STREAMLIT_SERVER_HEADLESS=true
-
 WORKDIR /opt/biaas
 
-RUN mkdir -p /opt/biaas/data /opt/biaas/.cache && \
-    chown -R biaas:biaas /opt/biaas/data /opt/biaas/.cache
+RUN mkdir -p /opt/biaas/data && chown -R biaas:biaas /opt/biaas/data
 
 COPY --from=builder --chown=biaas:biaas /opt/biaas/.venv ./.venv
 COPY --chown=biaas:biaas app/ ./app/
+COPY --chown=biaas:biaas scripts/ ./scripts/
 COPY --chown=biaas:biaas ./streamlit_app.py ./
-COPY --chown=biaas:biaas ./build_index.py ./
-
-ENV PATH="/opt/biaas/.venv/bin:$PATH" \
-    HF_HOME=/opt/biaas/.cache \
-    XDG_CACHE_HOME=/opt/biaas/.cache
 
 ARG ROOT_PATH
-ENV ROOT_PATH=${ROOT_PATH:-}
+
+ENV PATH="/opt/biaas/.venv/bin:$PATH" \
+    STREAMLIT_LOGGER_ENABLE_RICH=1 \
+    STREAMLIT_SERVER_HEADLESS=1 \
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
+    STREAMLIT_SERVER_PORT=8501 \
+    STREAMLIT_SERVER_BASE_URL_PATH=${ROOT_PATH} \
+    STREAMLIT_BROWSER_GATHER_USAGE_STATS=0
 
 USER biaas
+
+RUN PYTHONPATH=/opt/biaas python ./scripts/preload_models.py
 
 EXPOSE 8501
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import httpx; r=httpx.get('http://localhost:8501${ROOT_PATH}/healthz'); exit(0 if r.status_code == 200 else 1)"
+    CMD ["python", "./scripts/healthcheck.py"]
 
-CMD [ "sh", "-c", "exec streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.baseUrlPath=$ROOT_PATH" ]
+CMD [ "streamlit", "run", "streamlit_app.py" ]

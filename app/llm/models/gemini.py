@@ -9,9 +9,11 @@ from google.genai.types import (
 )
 from google.genai.types import GenerateContentConfigOrDict as GeminiConfig
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.exceptions import LLMModelError
 from app.llm.models.base import LLMModel
+
+settings = get_settings()
 
 
 class GeminiLLMModel(LLMModel):

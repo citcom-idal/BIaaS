@@ -1,6 +1,6 @@
-# Data València Agent (Analista de Datos Abiertos de Valencia)
+# Data València Agent (Analista de Datos Abiertos de València)
 
-**Data València Agent** es una aplicación web interactiva desarrollada con Streamlit y potenciada por Modelos de Lenguaje Grandes (LLMs) como Gemini y Llama 3. Su objetivo es permitir a cualquier usuario explorar el [catálogo de Datos Abiertos del Ayuntamiento de Valencia](https://valencia.opendatasoft.com/pages/home/?flg=es-es) utilizando lenguaje natural.
+**Data València Agent** es una aplicación web interactiva desarrollada con Streamlit y potenciada por Modelos de Lenguaje Grandes (LLMs) como Google Gemini y Llama 3. Su objetivo es permitir a cualquier usuario explorar el [catálogo de Datos Abiertos del Ayuntamiento de València](https://valencia.opendatasoft.com/pages/home/?flg=es-es) utilizando lenguaje natural.
 
 La aplicación encuentra el dataset más relevante para la consulta del usuario, lo descarga, lo analiza y genera visualizaciones y resúmenes de forma automática, actuando como un analista de datos virtual.
 
@@ -9,7 +9,7 @@ La aplicación encuentra el dataset más relevante para la consulta del usuario,
 ## Características Principales
 
 - **Búsqueda Semántica**: Utiliza embeddings de sentencias (`sentence-transformers`) y un índice vectorial (FAISS) para encontrar el dataset más relevante para una consulta en lenguaje natural.
-- **Multi-LLM**: Permite cambiar entre diferentes proveedores de LLM (Google Gemini, Llama 3 a través de Groq) para la planificación y generación de insights.
+- **Multi-LLM**: Permite cambiar entre diferentes proveedores de LLM (Google Gemini, Llama 3 a través de Groq, codestral a través de Ollama) para la planificación y generación de insights.
 - **Análisis Automático de Datos**: Identifica automáticamente tipos de columnas (numéricas, categóricas, geoespaciales, temporales).
 - **Generación de Visualizaciones**: El LLM planifica y sugiere los gráficos más adecuados (mapas, barras, líneas, etc.) para responder a la consulta del usuario.
 - **Creación de Insights**: Un agente LLM interpreta los gráficos y los datos para generar un resumen ejecutivo en texto.
@@ -28,7 +28,7 @@ El proyecto sigue una arquitectura modular basada en agentes, donde cada compone
 - **Modelos de Lenguaje (LLMs)**:
   - `Google Gemini` (a través de `google-genai`)
   - `Groq` (a través de `groq`)
-  - `Ollama` (a través de `ollama`)
+  - `codestral` (a través de `ollama`)
 - **Análisis y Manipulación de Datos**: `Pandas`, `NumPy`
 - **Visualización**: `Plotly Express`
 - **Gestión de Dependencias**: `uv`
@@ -37,7 +37,7 @@ El proyecto sigue una arquitectura modular basada en agentes, donde cada compone
 > [!IMPORTANT]
 > El proyecto está diseñado para que solo se pueda usar un proveedor de LLM a la vez.
 >
-> Para configurar el proveedor, se utilizan variables de entorno
+> Para configurar el proveedor, se utilizan variables de entorno.
 
 ---
 
@@ -67,7 +67,7 @@ Puedes instalarlo con pipx:
 pipx install uv
 ```
 
-También puedes referirte a la documentación oficial de [uv](https://docs.astral.sh/uv) para el instalador oficial standalone.
+También puedes consultar la documentación oficial de [uv](https://docs.astral.sh/uv) para el instalador standalone.
 
 ### 3. Instalar las dependencias
 
@@ -81,71 +81,77 @@ Esto creará un entorno virtual `.venv` en la raíz del proyecto e instalará to
 
 ### 4. Configurar las variables de entorno
 
-El proyecto necesita que se configure un proveedor de LLM para funcionar. Actualmente soporta Ollama, Google Gemini y Groq.
-
-Para usar Google Gemini o Groq, necesitas obtener tus claves API de cada servicio. En el caso de Ollama, necesitar proporcionar la URL de tu instancia local (que por defecto es `http://localhost:11434`). Además, deberás configurar el modelo LLM que quieres con ese proveedor.
-
-> [!NOTE]
-> Se recomiendan usar los siguientes modelos:
->
-> - Ollama: `codestral`
-> - Google Gemini: `gemini-1.5-flash-latest`
-> - Groq: `llama3-70b-8192`
+El proyecto necesita que se configure un proveedor de LLM para funcionar. Actualmente soporta Ollama (local), Google Gemini y Groq.
 
 Para configurar las variables de entorno, copia el archivo `.env.example` a `.env` y agrega los valores que necesites.
 
-#### 4.1 Configuración de Ollama (sólo si usas Ollama)
+Variables clave (nombres actuales que usa la aplicación):
 
-Si quieres usar Ollama, primero necesitas instalarlo y configurar tu modelo localmente. Puedes seguir la guía oficial de [Ollama](https://ollama.com/docs/installation) para instalarlo. Luego, debes descargar el modelo `codestral` con el siguiente comando:
+- LLM_PROVIDER: Selecciona el proveedor (`ollama`, `gemini`, `groq`).
+- LLM_MODEL: Modelo a usar en el proveedor seleccionado.
+- LLM_PROVIDER_API_KEY: (Opcional) clave API para proveedores que la requieran (Gemini / Groq).
+ - OLLAMA_HOST: URL de la instancia de Ollama si usas Ollama (por defecto `http://localhost:11434`).
+
+Se recomiendan usar los siguientes modelos:
+
+- Ollama: `codestral`
+- Google Gemini: `gemini-1.5-flash-latest`
+- Groq: `llama3-70b-8192`
+
+#### 4.1 Configuración de Ollama (solo si usas Ollama)
+
+Si quieres usar Ollama, primero necesitas instalarlo y configurar tu modelo localmente. Puedes seguir la guía oficial de [Ollama](https://ollama.com/docs/installation) para instalarlo. A continuación, descarga el modelo `codestral` con el siguiente comando:
 
 ```bash
 ollama pull codestral
 ```
 
-Después, en tu archivo `.env`, configura la URL de tu instancia de Ollama (si es diferente a la predeterminada) y el modelo que quieres usar:
+En tu archivo `.env`, configura las variables, por ejemplo:
 
 ```env
 LLM_PROVIDER=ollama
-OLLAMA_URL=http://localhost:11434
-OLLAMA_MODEL=codestral
+LLM_MODEL=codestral
+OLLAMA_HOST=http://localhost:11434
 ```
 
 ### 5. Construir el Índice FAISS (Solo la primera vez)
 
-Para que la búsqueda funcione, necesitas crear el índice vectorial localmente. Para ello está el script `build_index.py`, que se encargará de descargar la información de los datasets, generar los embeddings y construir el índice FAISS, que se guardará localmente en los archivos `faiss_metadata.json` y `faiss_opendata_valencia.idx` en el directorio `data/`.
+Para que la búsqueda funcione, necesitas crear el índice vectorial localmente. El script está en `scripts/build_index.py` y se encargará de descargar la información de los datasets, generar los embeddings y construir el índice FAISS, que se guardará localmente en `data/`.
 
-Dado que el índice se construye a partir de la información de datasets y es un contenido relativamente cambiante, no se almacena el índice en el repositorio, por ello el directorio `data/` está incluido en el `.gitignore`. Antes de ejecutar el script, debes crear el directorio `data/` en la raíz del proyecto:
+Antes de ejecutar el script, crea el directorio `data/` en la raíz del proyecto (el contenido no se sube al repositorio):
 
 ```bash
 mkdir data
 ```
 
-Puedes ejecutar el script con el siguiente comando:
+Ejecuta el script desde la raíz del proyecto (o dentro del contenedor si despliegas en Docker):
 
 ```bash
-python build_index.py
+python scripts/build_index.py
 ```
+
+El proceso generará los archivos `faiss_metadata.json` y `faiss_opendata_valencia.idx` dentro de `data/`.
 
 #### 💡 Uso
 
-Escribe una consulta en lenguaje natural en el campo de texto principal (ej: "¿Dónde hay aparcamientos para bicis?").
-Haz clic en "Analizar Consulta".
-El agente buscará el dataset más relevante, lo analizará y te presentará visualizaciones e insights.
-Puedes realizar preguntas de seguimiento sobre el dataset activo.
+1. Escribe una consulta en lenguaje natural en el campo de texto principal (p. ej.: "¿Dónde hay aparcamientos para bicis?").
+2. Haz clic en "Analizar Consulta".
+3. El agente buscará el dataset más relevante, lo analizará y te presentará visualizaciones e insights.
+4. Puedes realizar preguntas de seguimiento sobre el dataset activo.
 
 #### 📈 Posibles mejoras futuras
 
-Implementar un sistema de caché más avanzado para los resultados de la API.
-Permitir al usuario seleccionar manualmente un dataset si la búsqueda semántica no es precisa.
-Añadir soporte para más tipos de visualizaciones.
-Mejorar la gestión de memoria para datasets muy grandes.
+- Implementar un sistema de caché más avanzado para los resultados de la API.
+- Permitir al usuario seleccionar manualmente un dataset si la búsqueda semántica no es precisa.
+- Añadir soporte para más tipos de visualizaciones.
+- Mejorar la gestión de memoria para datasets muy grandes.
 
 ### 6. Ejecutar la aplicación
 
-¡Ya está todo listo! Inicia la aplicación Streamlit con este comando:
+¡Ya está todo listo! Inicia la aplicación Streamlit con este comando desde la raíz del proyecto:
 
 ```bash
-streamlit run
+streamlit run streamlit_app.py
 ```
 
 La aplicación se abrirá automáticamente en una nueva pestaña de tu navegador.
@@ -154,7 +160,7 @@ La aplicación se abrirá automáticamente en una nueva pestaña de tu navegador
 
 Para desplegar la aplicación se proporciona un `Dockerfile` que puedes usar para crear una imagen Docker de la aplicación. Está optimizado para producción, utilizando una imagen base de Python ligera y configurando el entorno de manera eficiente.
 
-Una vez que tengas tu imagen Docker, puedes desplegarla en cualquier plataforma que soporte contenedores. Cuando despliegues la aplicación, asegúrate de configurar las variables de entorno necesarias para el proveedor de LLM que hayas elegido y ejecutar el script `build_index.py` para generar el índice FAISS antes de iniciar la aplicación.
+Cuando despliegues la aplicación, asegúrate de configurar las variables de entorno necesarias para el proveedor de LLM que hayas elegido y de ejecutar el script `scripts/build_index.py` desde el contenedor para generar el índice FAISS antes de iniciar la aplicación.
 
 ## Agradecimientos
 
