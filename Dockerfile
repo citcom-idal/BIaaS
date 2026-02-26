@@ -46,11 +46,11 @@ ENV PATH="/opt/biaas/.venv/bin:$PATH" \
 
 USER biaas
 
-RUN PYTHONPATH=/opt/biaas python ./scripts/preload_models.py
+RUN python -m scripts.preload_models
 
 EXPOSE 8501
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD ["python", "./scripts/healthcheck.py"]
+    CMD ["python", "-m", "scripts.healthcheck"]
 
 CMD [ "streamlit", "run", "streamlit_app.py" ]
