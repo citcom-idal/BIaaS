@@ -9,7 +9,7 @@ import faiss
 import numpy as np
 from pydantic import TypeAdapter
 
-from app.core.config import INDEX_FILE, METADATA_FILE
+from app.core.constants import INDEX_FILE, METADATA_FILE
 from app.schemas.dataset import (
     DatasetIndexState,
     DatasetMetadata,

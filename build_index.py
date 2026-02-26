@@ -11,12 +11,7 @@ from rich import print
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from sentence_transformers import SentenceTransformer
 
-from app.core.config import (
-    CATALOG_LIST_URL,
-    DATA_DIR,
-    EMBEDDING_MODEL,
-    INDEX_FILE,
-)
+from app.core.constants import CATALOG_LIST_URL, DATA_DIR, EMBEDDING_MODEL, INDEX_FILE
 from app.core.exceptions import ExternalAPIError
 from app.schemas.dataset import DatasetMetadata
 from app.services.faiss_index_service import FaissIndexService

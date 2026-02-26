@@ -1,7 +1,8 @@
 from dependency_injector import containers, providers
 from sentence_transformers import SentenceTransformer
 
-from app.core.config import EMBEDDING_MODEL, settings
+from app.core.config import settings
+from app.core.constants import EMBEDDING_MODEL
 from app.llm.models import GeminiLLMModel, GroqLLMModel, OllamaLLMModel
 from app.services.dataset_service import DatasetService
 from app.services.faiss_index_service import FaissIndexService

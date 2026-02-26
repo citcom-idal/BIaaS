@@ -5,10 +5,8 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from app.core.config import (
-    EMBEDDING_MODEL,
-    settings,
-)
+from app.core.config import settings
+from app.core.constants import EMBEDDING_MODEL
 from app.core.container import Container
 from app.core.exceptions import (
     DatasetNotFoundError,
