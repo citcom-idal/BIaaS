@@ -22,6 +22,8 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    ENVIRONMENT: str = "development"
+
     LLM_PROVIDER: LLMProvider = Field(default=...)
     LLM_MODEL: str = Field(default=...)
 

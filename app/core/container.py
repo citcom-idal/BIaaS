@@ -24,6 +24,7 @@ class Container(containers.DeclarativeContainer):
         SentenceTransformer,
         model_name_or_path=EMBEDDING_MODEL,
         device="cpu",
+        local_files_only=True if settings.ENVIRONMENT == "production" else False,
     )
 
     faiss_index_service = providers.Singleton(FaissIndexService)
