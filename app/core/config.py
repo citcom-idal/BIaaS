@@ -1,4 +1,5 @@
 import enum
+from functools import lru_cache
 from typing import Self
 
 from pydantic import Field, HttpUrl, model_validator
@@ -38,4 +39,6 @@ class Settings(BaseSettings):
         return self
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

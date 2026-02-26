@@ -5,7 +5,7 @@ from typing import Any
 import pandas as pd
 import streamlit as st
 
-from app.core.config import settings
+from app.core.config import get_settings
 from app.core.constants import EMBEDDING_MODEL
 from app.core.container import Container
 from app.core.exceptions import (
@@ -47,6 +47,7 @@ def run_visualization_pipeline(
     analysis: dict[str, Any],
     dataset_title: str,
 ) -> None:
+    settings = get_settings()
     active_llm_provider = settings.LLM_PROVIDER.value
     st.subheader(f'Analizando consulta (LLM: {active_llm_provider.upper()}): "{user_query}"')
     with st.spinner(f"Generando visualizaciones con {active_llm_provider.upper()}..."):
@@ -107,6 +108,8 @@ def run_visualization_pipeline(
 
 def main() -> None:
     st.set_page_config(layout="wide", page_title="Analista Datos Valencia")
+
+    settings = get_settings()
 
     if "active_df" not in st.session_state:
         st.session_state.active_df = None
