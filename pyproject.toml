@@ -8,7 +8,7 @@ dependencies = [
     "beautifulsoup4==4.14.3",
     "dependency-injector==4.48.3",
     "faiss-cpu==1.13.2",
-    "google-genai==1.64.0",
+    "google-genai==1.65.0",
     "groq==1.0.0",
     "ollama==0.6.1",
     "plotly==6.5.2",
@@ -25,7 +25,7 @@ dev = [
     "mypy==1.19.1",
     "pandas-stubs==3.0.0.260204",
     "plotly-stubs==0.1.2",
-    "ruff==0.15.2",
+    "ruff==0.15.4",
 ]
 
 [tool.uv.sources]
