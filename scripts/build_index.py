@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 
+import os
 from typing import Any
 
 import httpx
@@ -180,7 +181,13 @@ def main() -> None:
             f"El directorio de datos {DATA_DIR} no existe. Asegúrate de que el proyecto esté configurado correctamente."
         )
 
-    sentence_transformer = SentenceTransformer(EMBEDDING_MODEL, device="cpu")
+    USE_EMBEDDING_MODEL_CACHE = bool(os.getenv("USE_EMBEDDING_MODEL_CACHE", False))
+
+    sentence_transformer = SentenceTransformer(
+        EMBEDDING_MODEL,
+        device="cpu",
+        local_files_only=USE_EMBEDDING_MODEL_CACHE,
+    )
 
     print_info(f"Construyendo Índice FAISS para: {EMBEDDING_MODEL}")
 
