@@ -90,7 +90,8 @@ Variables clave (nombres actuales que usa la aplicación):
 - LLM_PROVIDER: Selecciona el proveedor (`ollama`, `gemini`, `groq`).
 - LLM_MODEL: Modelo a usar en el proveedor seleccionado.
 - LLM_PROVIDER_API_KEY: (Opcional) clave API para proveedores que la requieran (Gemini / Groq).
- - OLLAMA_HOST: URL de la instancia de Ollama si usas Ollama (por defecto `http://localhost:11434`).
+- OLLAMA_HOST: URL de la instancia de Ollama si usas Ollama (por defecto `http://localhost:11434`).
+- USE_EMBEDDING_MODEL_CACHE: (Opcional) `true`/`false`. Habilita la opción `local_files_only` de `sentence-transformers` para permitir usar solo los modelos de embeddings que ya estén descargados localmente y evitará descargar el modelo cada vez.
 
 Se recomiendan usar los siguientes modelos:
 
