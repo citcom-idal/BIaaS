@@ -40,6 +40,8 @@ class Settings(BaseSettings):
 
         return self
 
+    USE_EMBEDDING_MODEL_CACHE: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
